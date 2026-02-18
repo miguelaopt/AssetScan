@@ -47,7 +47,7 @@ export default function HardwareTab({ machine }: Props) {
                 <div className="w-full bg-slate-600 rounded-full h-3">
                     <div
                         className={`h-3 rounded-full transition-all ${ramUsedPercent > 85 ? "bg-red-500" :
-                                ramUsedPercent > 65 ? "bg-yellow-500" : "bg-blue-500"
+                            ramUsedPercent > 65 ? "bg-yellow-500" : "bg-blue-500"
                             }`}
                         style={{ width: `${ramUsedPercent}%` }}
                     />
@@ -79,7 +79,7 @@ export default function HardwareTab({ machine }: Props) {
                                 <div className="w-full bg-slate-600 rounded-full h-2">
                                     <div
                                         className={`h-2 rounded-full ${usedPercent > 90 ? "bg-red-500" :
-                                                usedPercent > 75 ? "bg-yellow-500" : "bg-green-500"
+                                            usedPercent > 75 ? "bg-yellow-500" : "bg-green-500"
                                             }`}
                                         style={{ width: `${usedPercent}%` }}
                                     />

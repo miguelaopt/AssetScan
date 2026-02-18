@@ -1,89 +1,50 @@
-// ============================================================
-// App.tsx — Componente raiz. Gerencia estado global e roteamento
-// simples (lista de máquinas ↔ detalhe de máquina).
-// ============================================================
-
-import { useState, useEffect, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { Routes, Route } from "react-router-dom";
+import { useEffect, useState } from "react";
 import Sidebar from "./components/Sidebar";
-import MachineList from "./components/MachineList";
-import MachineDetail from "./components/MachineDetail";
-
-// Tipos espelhados das structs Rust em database.rs
-export interface Machine {
-    id: string;
-    hostname: string;
-    last_seen: string;
-    cpu_name: string;
-    cpu_cores: number;
-    ram_total_mb: number;
-    ram_used_mb: number;
-    os_name: string;
-    os_version: string;
-    uptime_hours: number;
-    disk_count: number;
-    software_count: number;
-}
-
-export type View = "machines" | "detail";
+import TopBar from "./components/TopBar";
+import Dashboard from "./pages/Dashboard";
+import Machines from "./pages/Machines";
+import MachineDetail from "./pages/MachineDetail";
+import Policies from "./pages/Policies";
+import Audit from "./pages/Audit";
+import Settings from "./pages/Settings";
 
 export default function App() {
-    const [machines, setMachines] = useState<Machine[]>([]);
-    const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
-    const [view, setView] = useState<View>("machines");
-    const [loading, setLoading] = useState(true);
+    const [theme, setTheme] = useState<"dark" | "light">("dark");
 
-    // Carrega a lista de máquinas do backend Rust
-    const loadMachines = useCallback(async () => {
-        try {
-            const result = await invoke<Machine[]>("list_machines");
-            setMachines(result);
-        } catch (err) {
-            console.error("Erro ao carregar máquinas:", err);
-        } finally {
-            setLoading(false);
+    useEffect(() => {
+        const saved = localStorage.getItem("theme") as "dark" | "light" | null;
+        if (saved) {
+            setTheme(saved);
+            document.documentElement.setAttribute("data-theme", saved);
         }
     }, []);
 
-    // Carrega ao iniciar e atualiza a cada 30 segundos
-    useEffect(() => {
-        loadMachines();
-        const interval = setInterval(loadMachines, 30_000);
-        return () => clearInterval(interval);
-    }, [loadMachines]);
-
-    const handleSelectMachine = (machine: Machine) => {
-        setSelectedMachine(machine);
-        setView("detail");
-    };
-
-    const handleBack = () => {
-        setSelectedMachine(null);
-        setView("machines");
+    const toggleTheme = () => {
+        const newTheme = theme === "dark" ? "light" : "dark";
+        setTheme(newTheme);
+        localStorage.setItem("theme", newTheme);
+        document.documentElement.setAttribute("data-theme", newTheme);
     };
 
     return (
-        <div className="flex h-screen bg-slate-900 text-slate-100 overflow-hidden">
-            {/* Sidebar lateral */}
-            <Sidebar
-                machineCount={machines.length}
-                currentView={view}
-                onGoHome={handleBack}
-                onRefresh={loadMachines}
-            />
+        <div className="flex h-screen overflow-hidden">
+            <Sidebar />
 
-            {/* Conteúdo principal */}
-            <main className="flex-1 overflow-auto p-6">
-                {view === "machines" ? (
-                    <MachineList
-                        machines={machines}
-                        loading={loading}
-                        onSelect={handleSelectMachine}
-                    />
-                ) : selectedMachine ? (
-                    <MachineDetail machine={selectedMachine} onBack={handleBack} />
-                ) : null}
-            </main>
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <TopBar theme={theme} onToggleTheme={toggleTheme} />
+
+                <main className="flex-1 overflow-auto p-6 bg-slate-900">
+                    <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/machines" element={<Machines />} />
+                        <Route path="/machines/:id" element={<MachineDetail />} />
+                        <Route path="/policies" element={<Policies />} />
+                        <Route path="/audit" element={<Audit />} />
+                        <Route path="/settings" element={<Settings />} />
+                    </Routes>
+                </main>
+            </div>
         </div>
     );
 }

@@ -61,16 +61,21 @@ checksum = "5f0e0fee31ef5ed1ba1316088939cea399010ed7731dba877ed44aeb407a75ea"
 
 [[package]]
 name = "assetscan-dashboard"
-version = "0.1.0"
+version = "2.0.0"
 dependencies = [
+ "anyhow",
  "axum",
  "chrono",
  "dirs 5.0.1",
+ "hex",
+ "rand 0.8.5",
  "rusqlite",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
+ "thiserror 1.0.69",
  "tokio",
  "tower-http 0.5.2",
  "uuid",

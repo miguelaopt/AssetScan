@@ -1,57 +1,61 @@
-import { View } from "../App";
+import { Link, useLocation } from "react-router-dom";
+import { Home, Monitor, Shield, FileText, Settings } from "lucide-react";
 
-interface Props {
-    machineCount: number;
-    currentView: View;
-    onGoHome: () => void;
-    onRefresh: () => void;
-}
+export default function Sidebar() {
+    const location = useLocation();
 
-export default function Sidebar({ machineCount, onGoHome, onRefresh }: Props) {
+    const links = [
+        { to: "/", icon: Home, label: "Dashboard" },
+        { to: "/machines", icon: Monitor, label: "Máquinas" },
+        { to: "/policies", icon: Shield, label: "Políticas" },
+        { to: "/audit", icon: FileText, label: "Auditoria" },
+        { to: "/settings", icon: Settings, label: "Configurações" },
+    ];
+
     return (
-        <aside className="w-56 bg-slate-800 border-r border-slate-700 flex flex-col">
-            {/* Logo */}
+        <aside className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
             <div className="p-5 border-b border-slate-700">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                        AS
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <Shield className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <p className="font-bold text-white text-sm">AssetScan</p>
-                        <p className="text-xs text-slate-400">v1.0.0</p>
+                        <h1 className="text-white font-bold text-lg">AssetScan</h1>
+                        <p className="text-xs text-slate-400">v2.0.0</p>
                     </div>
                 </div>
             </div>
 
-            {/* Navegação */}
             <nav className="flex-1 p-3 space-y-1">
-                <button
-                    onClick={onGoHome}
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium
-            text-slate-300 hover:bg-slate-700 hover:text-white transition-colors
-            flex items-center gap-2"
-                >
-                    <span>🖥️</span>
-                    <span>Máquinas</span>
-                    <span className="ml-auto bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
-                        {machineCount}
-                    </span>
-                </button>
+                {links.map((link) => {
+                    const isActive = location.pathname === link.to;
+                    const Icon = link.icon;
+
+                    return (
+                        <Link
+                            key={link.to}
+                            to={link.to}
+                            className={`
+                flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
+                transition-colors
+                ${isActive
+                                    ? "bg-blue-600 text-white"
+                                    : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                                }
+              `}
+                        >
+                            <Icon className="w-5 h-5" />
+                            <span>{link.label}</span>
+                        </Link>
+                    );
+                })}
             </nav>
 
-            {/* Botão de atualizar */}
-            <div className="p-3 border-t border-slate-700">
-                <button
-                    onClick={onRefresh}
-                    className="w-full px-3 py-2 text-sm text-slate-400 hover:text-white
-            hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2"
-                >
-                    <span>🔄</span>
-                    <span>Atualizar</span>
-                </button>
-                <p className="text-xs text-slate-500 mt-2 px-1">
-                    Porta: <span className="text-slate-400 font-mono">7474</span>
-                </p>
+            <div className="p-4 border-t border-slate-700">
+                <div className="text-xs text-slate-500">
+                    <p className="mb-1">Servidor HTTP</p>
+                    <p className="font-mono text-slate-400">localhost:7474</p>
+                </div>
             </div>
         </aside>
     );

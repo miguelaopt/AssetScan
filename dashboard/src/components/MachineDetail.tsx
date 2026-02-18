@@ -62,8 +62,8 @@ export default function MachineDetail({ machine, onBack }: Props) {
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${activeTab === tab
-                                ? "text-white border-blue-500"
-                                : "text-slate-400 border-transparent hover:text-white"
+                            ? "text-white border-blue-500"
+                            : "text-slate-400 border-transparent hover:text-white"
                             }`}
                     >
                         {tab === "hardware" ? "🖥️ Hardware" : "📦 Software"}
