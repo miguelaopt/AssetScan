@@ -1,0 +1,15 @@
+/agent/target
+
+/dashboard/target
+
+/.vscode
+/node_modules
+
+/src-tauri/target
+/src-tauri/node_modules
+
+.vs/
+bin/
+obj/
+ 
+
