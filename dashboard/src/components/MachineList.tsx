@@ -1,4 +1,4 @@
-import { Machine } from "../App";
+import { Machine } from "../hooks/useMachines";
 import StatusBadge from "./StatusBadge";
 
 interface Props {

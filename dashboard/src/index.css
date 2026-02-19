@@ -2,34 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap');
+
 @layer base {
     :root {
-        --bg-primary: 15 23 42; /* slate-900 */
-        --bg-secondary: 30 41 59; /* slate-800 */
-        --bg-tertiary: 51 65 85; /* slate-700 */
-        --text-primary: 248 250 252; /* slate-50 */
-        --text-secondary: 226 232 240; /* slate-200 */
-        --border: 71 85 105; /* slate-600 */
-        --accent: 37 99 235; /* blue-600 */
-    }
-
-    [data-theme="light"] {
-        --bg-primary: 248 250 252;
-        --bg-secondary: 241 245 249;
-        --bg-tertiary: 226 232 240;
-        --text-primary: 15 23 42;
-        --text-secondary: 51 65 85;
-        --border: 203 213 225;
-        --accent: 37 99 235;
+        --bg-primary: 10 14 26;
+        --bg-secondary: 17 24 39;
+        --bg-tertiary: 31 41 55;
+        --accent-primary: 0 217 255;
+        --accent-secondary: 0 132 255;
+        --success: 16 185 129;
+        --warning: 245 158 11;
+        --error: 239 68 68;
+        --text-primary: 249 250 251;
+        --text-secondary: 209 213 219;
+        --text-tertiary: 156 163 175;
     }
 }
 
-body {
-    background-color: rgb(var(--bg-primary));
-    color: rgb(var(--text-primary));
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+* {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: rgb(var(--bg-primary));
+    color: rgb(var(--text-primary));
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
 }
 
 ::-webkit-scrollbar {
@@ -42,10 +44,64 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgb(var(--border));
+    background: rgb(var(--bg-tertiary));
     border-radius: 4px;
 }
 
-    ::-webkit-scrollbar-thumb:hover {
-        background: rgb(var(--bg-tertiary));
+.glass {
+    background: rgba(17, 24, 39, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-hover:hover {
+    background: rgba(17, 24, 39, 0.85);
+    border-color: rgba(0, 217, 255, 0.3);
+}
+
+.text-gradient {
+    background: linear-gradient(135deg, rgb(var(--accent-primary)) 0%, rgb(var(--accent-secondary)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+    .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 217, 255, 0.2);
     }
+
+.btn-primary {
+    @apply px-6 py-3 bg-gradient-to-r from-cyber-500 to-deep-blue-500 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cyber-500/40 hover:-translate-y-0.5;
+}
+
+.btn-ghost {
+    @apply px-6 py-3 bg-transparent border border-cyber-500 text-cyber-500 font-semibold rounded-lg transition-all duration-300 hover:bg-cyber-500/10;
+}
+
+.input {
+    @apply w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 transition-all focus:outline-none focus:border-cyber-500 focus:ring-2 focus:ring-cyber-500/20;
+}
+
+.badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide;
+}
+
+.badge-success {
+    @apply bg-emerald-500/15 text-emerald-500 border border-emerald-500/30;
+}
+
+.badge-warning {
+    @apply bg-amber-500/15 text-amber-500 border border-amber-500/30;
+}
+
+.badge-error {
+    @apply bg-red-500/15 text-red-500 border border-red-500/30;
+}
+
+.badge-online {
+    @apply bg-cyber-500/15 text-cyber-500 border border-cyber-500/30 animate-pulse;
+}

@@ -570,6 +570,23 @@ pub fn get_disks(pool: &DbPool, machine_id: &str) -> Result<Vec<DiskInfo>> {
     Ok(disks)
 }
 
+pub fn insert_metric(
+    pool: &DbPool,
+    machine_id: &str,
+    cpu_percent: f32,
+    ram_used_mb: i64,
+    ram_total_mb: i64,
+) -> Result<()> {
+    let conn = pool.lock().unwrap();
+    conn.execute(
+        "INSERT INTO metrics_history (machine_id, timestamp, cpu_percent, ram_used_mb, ram_total_mb)
+         VALUES (?1, CURRENT_TIMESTAMP, ?2, ?3, ?4)",
+        params![machine_id, cpu_percent, ram_used_mb, ram_total_mb],
+    )?;
+    Ok(())
+}
+
+
 // -------------------------------------------------
 // Software
 // -------------------------------------------------

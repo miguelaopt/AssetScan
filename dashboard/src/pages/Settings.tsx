@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Settings as SettingsIcon, Key } from "lucide-react";
+import { Key } from "lucide-react";
 
 export default function Settings() {
     useEffect(() => {

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Shield, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { usePolicies } from "../hooks/usePolicies";
 
 export default function Policies() {
-    const { policies, createPolicy, deletePolicy, loading } = usePolicies();
+    const { policies, createPolicy, deletePolicy } = usePolicies();
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({
         policyType: "application",

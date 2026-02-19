@@ -1,7 +1,5 @@
-// src/components/AdvancedFilter.tsx
-import { useState, useEffect } from "react";
-import { Popover } from "@headlessui/react";
-import { Search, Filter, X } from "lucide-react";
+import { useState } from "react";
+import { Filter, X } from "lucide-react";
 
 export interface FilterOptions {
     searchTerm: string;
@@ -14,93 +12,127 @@ interface Props {
 }
 
 export function AdvancedFilter({ onFilterChange }: Props) {
+    const [isOpen, setIsOpen] = useState(false);
     const [filters, setFilters] = useState<FilterOptions>({
-        searchTerm: "",
-        status: "all",
-        os: "all",
+        searchTerm: '',
+        status: 'all',
+        os: 'all',
     });
 
-    // Notifica o componente pai quando os filtros mudam
-    useEffect(() => {
-        onFilterChange(filters);
-    }, [filters, onFilterChange]);
-
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFilters({ ...filters, searchTerm: e.target.value });
+    const handleChange = (key: keyof FilterOptions, value: any) => {
+        const newFilters = { ...filters, [key]: value };
+        setFilters(newFilters);
+        onFilterChange(newFilters);
     };
 
-    const activeFiltersCount = (filters.status !== 'all' ? 1 : 0) + (filters.os !== 'all' ? 1 : 0);
+    const activeFiltersCount = [
+        filters.searchTerm,
+        filters.status !== 'all',
+        filters.os !== 'all',
+    ].filter(Boolean).length;
 
     return (
-        <div className="flex items-center gap-2">
-            {/* Barra de Pesquisa */}
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                    type="text"
-                    placeholder="Pesquisar máquinas..."
-                    value={filters.searchTerm}
-                    onChange={handleSearchChange}
-                    className="bg-slate-800 border border-slate-700 text-white text-sm rounded-lg pl-9 pr-4 py-2 focus:outline-none focus:border-blue-500 w-64 transition-colors"
-                />
-            </div>
+        <div className="relative">
+            {/* Toggle Button */}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-700 hover:border-cyber-500 bg-gray-900/50 hover:bg-gray-900 transition-all"
+            >
+                <Filter className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-medium text-white">Filtros</span>
+                {activeFiltersCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-cyber-500 text-white text-xs font-bold">
+                        {activeFiltersCount}
+                    </span>
+                )}
+            </button>
 
-            {/* Menu de Filtros (Headless UI Popover) */}
-            <Popover className="relative">
-                <Popover.Button className="flex items-center gap-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 text-sm rounded-lg px-4 py-2 transition-colors">
-                    <Filter className="w-4 h-4" />
-                    Filtros
-                    {activeFiltersCount > 0 && (
-                        <span className="bg-blue-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                            {activeFiltersCount}
-                        </span>
-                    )}
-                </Popover.Button>
+            {/* Filter Panel */}
+            {isOpen && (
+                <>
+                    {/* Backdrop */}
+                    <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setIsOpen(false)}
+                    />
 
-                <Popover.Panel className="absolute right-0 z-10 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-xl shadow-xl p-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-white font-semibold">Filtros Avançados</h3>
-                        <Popover.Button className="text-slate-400 hover:text-white">
-                            <X className="w-4 h-4" />
-                        </Popover.Button>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Estado</label>
-                            <select
-                                value={filters.status}
-                                onChange={(e) => setFilters({ ...filters, status: e.target.value as any })}
-                                className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg p-2 focus:border-blue-500 outline-none"
+                    {/* Panel */}
+                    <div className="absolute right-0 top-full mt-2 w-80 glass border border-white/10 rounded-xl p-4 z-50 animate-slide-down shadow-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-semibold text-white">Filtros Avançados</h3>
+                            <button
+                                onClick={() => setIsOpen(false)}
+                                className="p-1 rounded hover:bg-white/10 transition-colors"
                             >
-                                <option value="all">Todos</option>
-                                <option value="online">Apenas Online</option>
-                                <option value="offline">Apenas Offline</option>
-                            </select>
+                                <X className="w-4 h-4 text-gray-400" />
+                            </button>
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Sistema Operativo</label>
-                            <select
-                                value={filters.os}
-                                onChange={(e) => setFilters({ ...filters, os: e.target.value })}
-                                className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg p-2 focus:border-blue-500 outline-none"
-                            >
-                                <option value="all">Todos</option>
-                                <option value="Windows">Windows</option>
-                                <option value="Linux">Linux</option>
-                            </select>
-                        </div>
+                        <div className="space-y-4">
+                            {/* Search */}
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-2">
+                                    Pesquisar
+                                </label>
+                                <input
+                                    type="text"
+                                    value={filters.searchTerm}
+                                    onChange={(e) => handleChange('searchTerm', e.target.value)}
+                                    placeholder="Nome da máquina..."
+                                    className="input text-sm"
+                                />
+                            </div>
 
-                        <button
-                            onClick={() => setFilters({ searchTerm: filters.searchTerm, status: 'all', os: 'all' })}
-                            className="w-full text-sm text-slate-400 hover:text-white mt-2"
-                        >
-                            Limpar Filtros
-                        </button>
+                            {/* Status */}
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-2">
+                                    Estado
+                                </label>
+                                <select
+                                    value={filters.status}
+                                    onChange={(e) => handleChange('status', e.target.value)}
+                                    className="input text-sm"
+                                >
+                                    <option value="all">Todas</option>
+                                    <option value="online">Online</option>
+                                    <option value="offline">Offline</option>
+                                </select>
+                            </div>
+
+                            {/* OS */}
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-2">
+                                    Sistema Operacional
+                                </label>
+                                <select
+                                    value={filters.os}
+                                    onChange={(e) => handleChange('os', e.target.value)}
+                                    className="input text-sm"
+                                >
+                                    <option value="all">Todos</option>
+                                    <option value="windows">Windows</option>
+                                    <option value="linux">Linux</option>
+                                    <option value="macos">macOS</option>
+                                </select>
+                            </div>
+
+                            {/* Clear Button */}
+                            {activeFiltersCount > 0 && (
+                                <button
+                                    onClick={() => {
+                                        const cleared: FilterOptions = { searchTerm: '', status: 'all', os: 'all' };
+                                        setFilters(cleared);
+                                        onFilterChange(cleared);
+                                    }}
+                                    className="w-full btn-ghost text-sm"
+                                >
+                                    Limpar Filtros
+                                </button>
+                            )}
+                        </div>
                     </div>
-                </Popover.Panel>
-            </Popover>
+                </>
+            )}
         </div>
     );
 }

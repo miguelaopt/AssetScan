@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { FileText } from "lucide-react";
 
 interface AuditLog {
     id: number;
