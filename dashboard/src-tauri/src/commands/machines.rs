@@ -102,3 +102,14 @@ pub async fn get_dashboard_stats(
         active_policies,
     })
 }
+
+use crate::models::ComparisonResult;
+
+#[tauri::command]
+pub async fn compare_machines(
+    machine_ids: Vec<String>,
+    pool: tauri::State<'_, crate::database::DbPool>,
+) -> Result<ComparisonResult, String> {
+    // 1.6 Comparação de Máquinas
+    Err("Comparação de máquinas em implementação...".to_string())
+}

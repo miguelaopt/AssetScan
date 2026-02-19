@@ -9,13 +9,22 @@ mod database;
 mod auth;
 mod server;
 mod commands;
+mod scheduler;
+mod vulnerability_scanner;
+mod aggregator;
+mod email_sender;
+mod integrations;
+mod intelligence;
+mod compliance;
+mod api;
+
 
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
 
 fn main() {
     println!("═══════════════════════════════════════════════════");
-    println!("  AssetScan Dashboard v2.0");
+    println!("  AssetScan Dashboard v3.0");
     println!("═══════════════════════════════════════════════════\n");
 
     // Abre o banco de dados
@@ -38,14 +47,27 @@ fn main() {
         }
     }
 
-    let pool_for_server = Arc::clone(&pool);
+      let pool_for_server = Arc::clone(&pool);
+    let pool_sched = Arc::clone(&pool);
+    let pool_agg = Arc::clone(&pool);
 
     // Inicia servidor HTTP em thread separada
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new()
             .expect("Falha ao criar runtime Tokio");
+        
+        // 1. Inicia as tarefas de background ANTES de bloquear a thread
+        rt.spawn(async move {
+            scheduler::setup_report_scheduler(pool_sched).await;
+        });
+        
+        rt.spawn(async move {
+            aggregator::start_metrics_aggregator(pool_agg).await;
+        });
+
+        // 2. Inicia o servidor (isto bloqueia a execução desta thread específica)
         rt.block_on(server::start_server(pool_for_server));
-    });
+    }); // <--- Faltava fechar isto!
 
     // Inicia aplicação Tauri
     tauri::Builder::default()
@@ -64,6 +86,9 @@ fn main() {
             commands::list_policies,
             commands::delete_policy,
             commands::get_audit_logs,
+            commands::compare_machines,
+            commands::request_screenshot,
+            commands::chatbot_query,
         ])
         .run(tauri::generate_context!())
         .expect("Erro ao iniciar AssetScan Dashboard");

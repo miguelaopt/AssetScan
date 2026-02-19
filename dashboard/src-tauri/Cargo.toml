@@ -22,6 +22,14 @@ thiserror = "1"
 sha2 = "0.10"
 hex = "0.4"
 rand = "0.8"
+reqwest = { version = "0.12", features = ["json"] }
+hmac = "0.12"
+axum-extra = { version = "0.9", features = ["typed-header"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures = "0.3"
+smartcore = "0.3" 
+tokio-cron-scheduler = "0.10"
+lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
 
 [profile.release]
 opt-level = 3

@@ -2,12 +2,16 @@
 // collector.rs — Coleta de informações do sistema
 // ============================================================
 
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use sysinfo::{Disks, System, Pid, ProcessesToUpdate};
 use winreg::enums::*;
 use winreg::RegKey;
 use chrono::Utc;
+
+// Importa as estruturas do teu novo módulo
+use crate::network_collector::NetworkConnection;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SystemReport {
@@ -18,6 +22,7 @@ pub struct SystemReport {
     pub hardware: HardwareInfo,
     pub software: Vec<SoftwareEntry>,
     pub processes: Vec<ProcessInfo>,  // NOVO
+    pub network: Vec<NetworkConnection>, // NOVO v3.0: Dados de rede
     pub os: OsInfo,
 }
 
@@ -83,7 +88,7 @@ pub fn collect_full_report(config: &crate::config::Config) -> Result<SystemRepor
     let machine_id = get_or_create_machine_id()?;
 
     Ok(SystemReport {
-        agent_version: "2.0.0".to_string(),
+        agent_version: "3.0.0".to_string(), // Actualizei para a v3.0!
         hostname,
         machine_id,
         collected_at: Utc::now().to_rfc3339(),
@@ -91,6 +96,7 @@ pub fn collect_full_report(config: &crate::config::Config) -> Result<SystemRepor
         os: collect_os(&sys),
         software: collect_software()?,
         processes: collect_processes(&sys),
+        network: crate::network_collector::collect_network_stats(), // Chamada ao novo módulo
     })
 }
 

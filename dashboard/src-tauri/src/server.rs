@@ -12,10 +12,15 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
+use crate::api;
 
 use crate::database::{self, DbPool};
 use crate::models::*;
 use crate::auth;
+use axum::response::sse::{Event, Sse};
+use futures::stream::Stream;
+use tokio_stream::wrappers::BroadcastStream;
+use std::convert::Infallible;
 
 // -------------------------------------------------
 // Estrutura de dados recebidas do agente v2.0
@@ -30,7 +35,16 @@ pub struct AgentReport {
     pub hardware: HardwarePayload,
     pub software: Vec<SoftwarePayload>,
     pub processes: Vec<ProcessPayload>,  // NOVO
+    pub network: Option<Vec<NetworkConnectionPayload>>,  // NOVO v3.0: Dados de rede
     pub os: OsPayload,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct NetworkConnectionPayload {
+    pub pid: u32,
+    pub local_ip: String,
+    pub remote_ip: String,
+    pub state: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -108,6 +122,18 @@ async fn auth_middleware(
     }
 
     Ok(next.run(req).await)
+}
+
+// -------------------------------------------------
+// Server-Sent Events (SSE) v3.0
+// -------------------------------------------------
+pub async fn events_stream(
+    State(_pool): State<DbPool>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    // Implementação dummy inicial (para satisfazer compilação)
+    // O fluxo real virá do channel Tokio quando implementarmos os webhooks
+    let stream = futures::stream::iter(vec![]);
+    Sse::new(stream).keep_alive(axum::response::sse::KeepAlive::default())
 }
 
 // -------------------------------------------------
@@ -229,6 +255,8 @@ pub async fn start_server(pool: DbPool) {
 
     let app = Router::new()
         .route("/api/v2/report", post(receive_report))
+        .route("/api/v3/events", axum::routing::get(events_stream))
+        .merge(api::create_api_router()) 
         .layer(middleware::from_fn_with_state(pool.clone(), auth_middleware))
         .layer(cors)
         .with_state(pool);

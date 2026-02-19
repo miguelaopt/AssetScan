@@ -123,6 +123,98 @@ pub fn initialize(conn: &Connection) -> Result<()> {
             last_used  TEXT,
             enabled    INTEGER NOT NULL DEFAULT 1
         );
+        -- ==========================================
+        -- TABELAS ASSETSCAN V3.0
+        -- ==========================================
+
+        -- 1.1 Gráficos em Tempo Real
+        CREATE TABLE IF NOT EXISTS metrics_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            machine_id TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            cpu_percent REAL,
+            ram_used_mb INTEGER,
+            ram_total_mb INTEGER,
+            disk_used_gb REAL,
+            disk_total_gb REAL,
+            network_in_mb REAL,
+            network_out_mb REAL
+        );
+        CREATE INDEX IF NOT EXISTS idx_metrics_machine_time ON metrics_history(machine_id, timestamp);
+
+        -- 3.1 Vulnerabilidades
+        CREATE TABLE IF NOT EXISTS vulnerabilities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            machine_id TEXT NOT NULL,
+            software_name TEXT NOT NULL,
+            software_version TEXT NOT NULL,
+            cve_id TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            description TEXT,
+            published_date TEXT,
+            last_checked TEXT,
+            status TEXT DEFAULT 'open'
+        );
+
+        -- 4.1 Performance Histórica Agregada
+        CREATE TABLE IF NOT EXISTS metrics_aggregated (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            machine_id TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            granularity TEXT NOT NULL,
+            cpu_avg REAL,
+            cpu_max REAL,
+            ram_avg REAL,
+            ram_max REAL,
+            disk_usage_avg REAL,
+            network_in_total REAL,
+            network_out_total REAL
+        );
+
+        -- 5.3 Software Licenses
+        CREATE TABLE IF NOT EXISTS software_licenses (
+            id TEXT PRIMARY KEY,
+            software_name TEXT NOT NULL,
+            license_key TEXT,
+            license_type TEXT,
+            seats_total INTEGER,
+            seats_used INTEGER,
+            cost_per_seat REAL,
+            purchase_date TEXT,
+            expiry_date TEXT,
+            vendor TEXT,
+            notes TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS license_assignments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            license_id TEXT NOT NULL REFERENCES software_licenses(id),
+            machine_id TEXT NOT NULL REFERENCES machines(machine_id),
+            assigned_date TEXT NOT NULL,
+            status TEXT DEFAULT 'active'
+        );
+
+        -- 7.1 Webhooks
+        CREATE TABLE IF NOT EXISTS webhooks (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            url TEXT NOT NULL,
+            secret TEXT,
+            events TEXT NOT NULL,
+            enabled INTEGER DEFAULT 1,
+            created_at TEXT NOT NULL,
+            last_triggered TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS webhook_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            webhook_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            response_status INTEGER,
+            response_body TEXT,
+            triggered_at TEXT NOT NULL
+        );
     ")?;
 
     Ok(())
@@ -545,4 +637,68 @@ pub fn log_audit(
         params![action, resource_type, resource_id, user, details],
     )?;
     Ok(())
+}
+
+// -------------------------------------------------
+// Filtros Avançados (NOVO v3.0)
+// -------------------------------------------------
+pub fn list_machines_filtered(
+    pool: &DbPool,
+    filters: MachineFilters,
+) -> Result<Vec<Machine>> {
+    let conn = pool.lock().unwrap();
+    let mut query = "
+        SELECT
+            m.id, m.machine_id, m.hostname, m.custom_name, m.tags, m.notes,
+            m.last_seen, m.cpu_name, m.cpu_cores, m.ram_total_mb, m.ram_used_mb,
+            m.os_name, m.os_version, m.uptime_hours,
+            COUNT(DISTINCT d.id) AS disk_count,
+            COUNT(DISTINCT s.id) AS software_count,
+            COUNT(DISTINCT p.id) AS process_count
+        FROM machines m
+        LEFT JOIN disks d ON d.machine_id = m.machine_id
+        LEFT JOIN software s ON s.machine_id = m.machine_id
+        LEFT JOIN processes p ON p.machine_id = m.machine_id
+        WHERE 1=1
+    ".to_string();
+
+    // Constrói WHERE dinamicamente (Simplificado para o esqueleto base)
+    if let Some(search) = filters.search_term {
+        query.push_str(&format!(" AND (m.hostname LIKE '%{}%' OR m.custom_name LIKE '%{}%')", search, search));
+    }
+    
+    query.push_str(" GROUP BY m.id ORDER BY m.last_seen DESC");
+
+    let mut stmt = conn.prepare(&query)?;
+    
+    // O mapeamento aqui é idêntico ao `list_machines` existente
+    let machines = stmt.query_map([], |row| {
+        let last_seen: String = row.get(6)?;
+        let is_online = is_machine_online(&last_seen);
+        let tags_json: String = row.get(4).unwrap_or_else(|_| "[]".to_string());
+        let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+
+        Ok(Machine {
+            id: row.get(0)?,
+            machine_id: row.get(1)?,
+            hostname: row.get(2)?,
+            custom_name: row.get(3)?,
+            tags,
+            notes: row.get(5)?,
+            last_seen,
+            cpu_name: row.get(7)?,
+            cpu_cores: row.get(8)?,
+            ram_total_mb: row.get(9)?,
+            ram_used_mb: row.get(10)?,
+            os_name: row.get(11)?,
+            os_version: row.get(12)?,
+            uptime_hours: row.get(13)?,
+            disk_count: row.get(14)?,
+            software_count: row.get(15)?,
+            process_count: row.get(16)?,
+            is_online,
+        })
+    })?.collect::<Result<Vec<Machine>>>()?;
+
+    Ok(machines)
 }

@@ -1,0 +1,4 @@
+
+Agora que tens o MSI gerado, podes usar a tua ferramenta de RMM (ou GPO do Windows) para instalar o agente em todos os computadores da empresa com apenas este comando:
+
+msiexec /i AssetScanAgent.msi /qn SERVER_URL=http://192.168.1.100:7474 API_KEY=minha_chave_secreta INTERVAL=30

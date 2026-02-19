@@ -124,3 +124,46 @@ pub struct DashboardStats {
     pub total_policies: i64,
     pub active_policies: i64,
 }
+
+// ============================================================
+// Modelos v3.0 (Adições)
+// ============================================================
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MachineFilters {
+    pub os: Option<Vec<String>>,
+    pub status: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub min_ram: Option<i64>,
+    pub max_ram: Option<i64>,
+    pub search_term: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Vulnerability {
+    pub id: i64,
+    pub machine_id: String,
+    pub software_name: String,
+    pub software_version: String,
+    pub cve_id: String,
+    pub severity: String,
+    pub description: Option<String>,
+    pub published_date: Option<String>,
+    pub last_checked: Option<String>,
+    pub status: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ComparisonResult {
+    pub machine_a: Machine,
+    pub machine_b: Machine,
+    pub diff_software: Vec<String>,
+    pub diff_policies: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WebhookEvent {
+    pub event_type: String,
+    pub timestamp: String,
+    pub data: serde_json::Value,
+}

@@ -7,6 +7,8 @@ mod collector;
 mod enforcer;
 mod config;
 mod notifications;
+mod screenshot;
+mod network_collector;
 
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -51,7 +53,11 @@ async fn run_cycle(config: &config::Config) -> Result<()> {
 
     // 1. Coleta de dados do sistema
     println!("[Coleta] A recolher informações do sistema...");
-    let report = collector::collect_full_report(config)?;
+    let mut report = collector::collect_full_report(config)?;
+
+    let network_stats = network_collector::collect_network_stats();
+    println!("[Coleta] ✓ {} conexões de rede ativas", network_stats.len());
+    report.network_connections = network_stats;
     println!("[Coleta] ✓ {} processos | {} apps instaladas", 
         report.processes.len(), 
         report.software.len()

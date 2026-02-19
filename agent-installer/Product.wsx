@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Product Id="*" Name="AssetScan Agent" Version="3.0.0" 
+           Manufacturer="AssetScan" UpgradeCode="12345678-ABCD-EFGH-IJKL-987654321000">
+    
+    <Package InstallerVersion="500" Compressed="yes" />
+    <MediaTemplate EmbedCab="yes" />
+    
+    <Property Id="SERVER_URL" Value="http://localhost:7474" />
+    <Property Id="API_KEY" Value="default_key" />
+    <Property Id="INTERVAL" Value="60" />
+    
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="AssetScan">
+        
+        <Component Id="AgentExe" Guid="87654321-DCBA-HGFE-LKJI-000123456789">
+          <File Id="AgentExecutable" Source="..\agent\target\release\assetscan-agent.exe" KeyPath="yes" />
+          
+          <ServiceInstall Id="AgentService" 
+                         Name="AssetScanAgent"
+                         DisplayName="AssetScan Agent v3"
+                         Description="Agente de monitorização de infraestrutura AssetScan."
+                         Type="ownProcess"
+                         Start="auto"
+                         ErrorControl="normal" />
+          
+          <ServiceControl Id="StartAgentService" 
+                          Name="AssetScanAgent" 
+                          Start="install" 
+                          Stop="both" 
+                          Remove="uninstall" 
+                          Wait="yes" />
+                          
+          <RegistryKey Root="HKLM" Key="Software\AssetScan\Agent">
+             <RegistryValue Name="ServerUrl" Type="string" Value="[SERVER_URL]" />
+             <RegistryValue Name="ApiKey" Type="string" Value="[API_KEY]" />
+             <RegistryValue Name="IntervalMinutes" Type="integer" Value="[INTERVAL]" />
+          </RegistryKey>
+        </Component>
+
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="AssetScan Agent" Level="1">
+      <ComponentRef Id="AgentExe" />
+    </Feature>
+  </Product>
+</Wix>

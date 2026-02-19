@@ -3,6 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Cpu, HardDrive, Shield } from "lucide-react";
 import StatCard from "../components/StatCard";
 import { useMachines } from "../hooks/useMachines";
+import { useMetricsHistory } from "../hooks/useMetricsHistory";
+import { CPUChart, RAMChart } from "../components/charts/MetricsCharts";
 
 interface DashboardStats {
     total_machines: number;
@@ -17,6 +19,7 @@ interface DashboardStats {
 export default function Dashboard() {
     const { machines } = useMachines();
     const [stats, setStats] = useState<DashboardStats | null>(null);
+    const { data: metricsData } = useMetricsHistory("all", 12); // Últimas 12 horas
 
     useEffect(() => {
         document.title = "Dashboard - AssetScan";
@@ -32,19 +35,34 @@ export default function Dashboard() {
         }
     };
 
-    if (!stats) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <div className="text-slate-400">A carregar estatísticas...</div>
-            </div>
-        );
-    }
+    if (!stats) return <div className="text-slate-400">A carregar estatísticas...</div>;
 
     return (
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-bold text-white mb-2">Dashboard</h1>
                 <p className="text-slate-400">Visão geral do sistema</p>
+            </div>
+            {/* NOVOS GRÁFICOS */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Uso de CPU (Médio)</h3>
+                    <CPUChart data={metricsData} />
+                </div>
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Uso de RAM (Média)</h3>
+                    <RAMChart data={metricsData} />
+                </div>
+            </div>{/* NOVOS GRÁFICOS */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Uso de CPU (Médio)</h3>
+                    <CPUChart data={metricsData} />
+                </div>
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Uso de RAM (Média)</h3>
+                    <RAMChart data={metricsData} />
+                </div>
             </div>
 
             <div className="grid grid-cols-4 gap-4">

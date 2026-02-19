@@ -10,6 +10,9 @@ export default function Sidebar() {
         { to: "/policies", icon: Shield, label: "Políticas" },
         { to: "/audit", icon: FileText, label: "Auditoria" },
         { to: "/settings", icon: Settings, label: "Configurações" },
+        { to: "/vulnerabilities", icon: Settings, label: "Vulnerabilidades" },
+        { to: "/compliance", icon: Settings, label: "Compliance"}
+  
     ];
 
     return (
