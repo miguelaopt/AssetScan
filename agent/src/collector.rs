@@ -74,6 +74,7 @@ pub fn collect_full_report(config: &crate::config::Config) -> Result<SystemRepor
     let mut sys = System::new_all();
     sys.refresh_all();
 
+    std::thread::sleep(std::time::Duration::from_secs(1));
     std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
     sys.refresh_cpu_usage();
     sys.refresh_processes(ProcessesToUpdate::All, true);

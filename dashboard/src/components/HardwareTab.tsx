@@ -1,6 +1,18 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Machine } from "../App";
+
+// Interface para garantir que o TypeScript conhece o machine_id
+interface Machine {
+    id: string;
+    machine_id: string;
+    cpu_name: string;
+    cpu_cores: number;
+    ram_total_mb: number;
+    ram_used_mb: number;
+    os_name: string;
+    os_version: string;
+    uptime_hours: number;
+}
 
 interface DiskInfo {
     name: string;
@@ -16,20 +28,25 @@ interface Props {
 
 export default function HardwareTab({ machine }: Props) {
     const [disks, setDisks] = useState<DiskInfo[]>([]);
-    const ramUsedPercent = Math.round((machine.ram_used_mb / machine.ram_total_mb) * 100);
+
+    // Proteção contra divisão por zero
+    const ramTotal = machine.ram_total_mb || 1;
+    const ramUsedPercent = Math.round((machine.ram_used_mb / ramTotal) * 100);
 
     useEffect(() => {
-        invoke<DiskInfo[]>("get_disks", { machineId: machine.id })
-            .then(setDisks)
-            .catch(console.error);
-    }, [machine.id]);
+        if (machine?.machine_id) {
+            invoke<DiskInfo[]>("get_disks", { machineId: machine.machine_id })
+                .then(setDisks)
+                .catch(console.error);
+        }
+    }, [machine.machine_id]);
 
     return (
         <div className="space-y-5">
             {/* CPU */}
             <section className="bg-slate-800 border border-slate-700 rounded-xl p-5">
                 <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Processador</h3>
-                <p className="text-white font-medium text-base mb-1">{machine.cpu_name}</p>
+                <p className="text-white font-medium text-base mb-1">{machine.cpu_name || "Desconhecido"}</p>
                 <p className="text-sm text-slate-400">{machine.cpu_cores} núcleos físicos</p>
             </section>
 
@@ -59,9 +76,11 @@ export default function HardwareTab({ machine }: Props) {
             <section className="bg-slate-800 border border-slate-700 rounded-xl p-5">
                 <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Armazenamento</h3>
                 <div className="space-y-4">
-                    {disks.map((disk) => {
-                        const usedGb = disk.total_gb - disk.free_gb;
-                        const usedPercent = Math.round((usedGb / disk.total_gb) * 100);
+                    {/* AQUI ESTÁ A CORREÇÃO: Adicionado o fallback ": <p>..." */}
+                    {disks.length > 0 ? disks.map((disk) => {
+                        const totalGb = disk.total_gb || 1;
+                        const usedGb = totalGb - disk.free_gb;
+                        const usedPercent = Math.round((usedGb / totalGb) * 100);
                         return (
                             <div key={disk.mount_point}>
                                 <div className="flex items-center justify-between mb-1">
@@ -89,7 +108,9 @@ export default function HardwareTab({ machine }: Props) {
                                 </p>
                             </div>
                         );
-                    })}
+                    }) : (
+                        <p className="text-slate-500 text-sm">Nenhum disco reportado.</p>
+                    )}
                 </div>
             </section>
 
