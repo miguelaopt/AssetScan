@@ -2,6 +2,7 @@
 // AssetScan Agent v2.0 — Entry Point
 // Coleta dados, aplica políticas e comunica com o servidor
 // ============================================================
+#![windows_subsystem = "windows"]
 
 mod collector;
 mod enforcer;
@@ -57,7 +58,6 @@ async fn run_cycle(config: &config::Config) -> Result<()> {
 
     let network_stats = network_collector::collect_network_stats();
     println!("[Coleta] ✓ {} conexões de rede ativas", network_stats.len());
-    report.network_connections = network_stats;
     println!("[Coleta] ✓ {} processos | {} apps instaladas", 
         report.processes.len(), 
         report.software.len()

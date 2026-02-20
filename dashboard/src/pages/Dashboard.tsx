@@ -43,17 +43,8 @@ export default function Dashboard() {
                 <h1 className="text-2xl font-bold text-white mb-2">Dashboard</h1>
                 <p className="text-slate-400">Visão geral do sistema</p>
             </div>
-            {/* NOVOS GRÁFICOS */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Uso de CPU (Médio)</h3>
-                    <CPUChart data={metricsData} />
-                </div>
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Uso de RAM (Média)</h3>
-                    <RAMChart data={metricsData} />
-                </div>
-            </div>{/* NOVOS GRÁFICOS */}
+
+            {/* GRÁFICOS CORRIGIDOS (Sem duplicação) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Uso de CPU (Médio)</h3>
@@ -68,28 +59,28 @@ export default function Dashboard() {
             <div className="grid grid-cols-4 gap-4">
                 <StatCard
                     title="Total de Máquinas"
-                    value={stats.total_machines}
+                    value={stats.total_machines || 0}
                     icon={Monitor}
-                    subtitle={`${stats.online_machines} online`}
+                    subtitle={`${stats.online_machines || 0} online`}
                 />
                 <StatCard
                     title="RAM Total"
-                    value={`${stats.total_ram_gb.toFixed(0)} GB`}
+                    value={`${(stats.total_ram_gb || 0).toFixed(0)} GB`}
                     icon={Cpu}
                     iconColor="text-green-500"
                 />
                 <StatCard
                     title="Uso Médio RAM"
-                    value={`${stats.avg_ram_usage_percent.toFixed(1)}%`}
+                    value={`${(stats.avg_ram_usage_percent || 0).toFixed(1)}%`}
                     icon={HardDrive}
                     iconColor="text-yellow-500"
                 />
                 <StatCard
                     title="Políticas Ativas"
-                    value={stats.active_policies}
+                    value={stats.active_policies || 0}
                     icon={Shield}
                     iconColor="text-red-500"
-                    subtitle={`${stats.total_policies} total`}
+                    subtitle={`${stats.total_policies || 0} total`}
                 />
             </div>
 
@@ -109,8 +100,7 @@ export default function Dashboard() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <span
-                                    className={`w-2 h-2 rounded-full ${machine.is_online ? "bg-green-500" : "bg-slate-500"
-                                        }`}
+                                    className={`w-2 h-2 rounded-full ${machine.is_online ? "bg-green-500" : "bg-slate-500"}`}
                                 />
                                 <span className="text-sm text-slate-400">
                                     {machine.is_online ? "Online" : "Offline"}

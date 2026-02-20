@@ -28,7 +28,7 @@ export default function Compliance() {
                     <h1 className="text-2xl font-bold text-white mb-2">Compliance Reports</h1>
                     <p className="text-slate-400">Verificação de conformidade com normas da indústria</p>
                 </div>
-                <button className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 border border-slate-700 rounded-lg transition-colors">
+                <button onClick={() => window.print()} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 border border-slate-700 rounded-lg transition-colors cursor-pointer">
                     <Download className="w-4 h-4" /> Exportar PDF
                 </button>
             </div>

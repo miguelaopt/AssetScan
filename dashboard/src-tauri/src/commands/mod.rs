@@ -8,6 +8,8 @@ pub mod processes;
 pub mod audit;
 pub mod screenshots;
 pub mod chatbot;
+pub mod vulnerabilities;
+pub use vulnerabilities::*;
 pub use machines::*;
 pub use policies::*;
 pub use processes::*;

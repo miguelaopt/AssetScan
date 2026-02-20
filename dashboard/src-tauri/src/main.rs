@@ -89,6 +89,7 @@ fn main() {
             commands::compare_machines,
             commands::request_screenshot,
             commands::chatbot_query,
+            commands::list_vulnerabilities,
         ])
         .run(tauri::generate_context!())
         .expect("Erro ao iniciar AssetScan Dashboard");
