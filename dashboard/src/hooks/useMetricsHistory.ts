@@ -34,9 +34,7 @@ export function useMetricsHistory(machineId: string = 'all', hours: number = 12)
 
             setData(formatted);
         } catch (err) {
-            console.error('Error loading metrics:', err);
-        } finally {
-            setLoading(false);
+                console.error("Erro ao carregar métricas:", err);
         }
     };
 
