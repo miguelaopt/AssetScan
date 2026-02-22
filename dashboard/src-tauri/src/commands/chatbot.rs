@@ -6,21 +6,29 @@ pub async fn chatbot_query(
     query: String,
     pool: State<'_, DbPool>,
 ) -> Result<String, String> {
-    let q = query.to_lowercase();
-    let conn = pool.lock().unwrap();
-
-    // Lógica básica de NLU (Compreensão de Linguagem Natural)
-    if q.contains("quantas máquinas") || q.contains("total de máquinas") {
-        let count: i64 = conn.query_row("SELECT COUNT(*) FROM machines", [], |r| r.get(0)).unwrap_or(0);
-        return Ok(format!("Atualmente, tens {} máquina(s) registada(s) no sistema.", count));
-    } 
-    else if q.contains("políticas") {
-        let count: i64 = conn.query_row("SELECT COUNT(*) FROM policies", [], |r| r.get(0)).unwrap_or(0);
-        return Ok(format!("Existem {} política(s) de segurança aplicadas.", count));
+    // Parse query simples
+    let query_lower = query.to_lowercase();
+    
+    if query_lower.contains("quantas") && query_lower.contains("máquinas") {
+        let machines = crate::database::list_machines(&pool)
+            .map_err(|e| e.to_string())?;
+        
+        let total = machines.len();
+        let online = machines.iter().filter(|m| m.is_online).count();
+        
+        return Ok(format!(
+            "Tens {} máquinas no total. {} estão online e {} estão offline.",
+            total, online, total - online
+        ));
     }
-    else if q.contains("olá") || q.contains("ola") {
-        return Ok("Olá! Eu sou a IA do AssetScan. Podes perguntar-me coisas como 'Quantas máquinas temos?' ou 'Temos políticas ativas?'. Como posso ajudar-te hoje?".to_string());
+    
+    if query_lower.contains("cpu") || query_lower.contains("processador") {
+        return Ok("Para ver informações de CPU, acede à página Dashboard onde podes ver gráficos em tempo real.".to_string());
     }
-
-    Ok("Não tenho a certeza se compreendi. Tenta perguntar sobre o 'total de máquinas' ou 'políticas'.".to_string())
+    
+    if query_lower.contains("vulnerabilidades") {
+        return Ok("Acede à página Vulnerabilidades para ver todas as falhas de segurança detectadas.".to_string());
+    }
+    
+    Ok("Desculpa, ainda não entendo essa pergunta. Tenta perguntar sobre máquinas, CPU ou vulnerabilidades.".to_string())
 }

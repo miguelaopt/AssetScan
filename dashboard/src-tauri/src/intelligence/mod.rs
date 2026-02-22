@@ -1,2 +1,3 @@
 pub mod anomaly_detector;
-// pub mod recommendations;
+
+pub use anomaly_detector::*;

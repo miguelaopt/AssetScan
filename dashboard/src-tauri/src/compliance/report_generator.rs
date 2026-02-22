@@ -1,45 +1,79 @@
 use crate::models::Machine;
-use super::checks::{ComplianceCheck, ISO27001_A12_2_1};
+use crate::compliance::checks::run_all_checks;
+use serde::{Serialize, Deserialize};
 
-pub enum ComplianceStandard {
-    ISO27001,
-    GDPR,
-    SOC2,
-}
-
+#[derive(Serialize, Deserialize)]
 pub struct ComplianceReport {
+    pub generated_at: String,
     pub standard: String,
-    pub total_machines_checked: usize,
+    pub total_checks: usize,
     pub passed_checks: usize,
     pub failed_checks: usize,
-    // Em produção, guardariamos o detalhe de cada máquina
+    pub compliance_score: f32,
+    pub machines: Vec<MachineComplianceResult>,
 }
 
-pub async fn generate_compliance_report(
-    standard: ComplianceStandard,
+#[derive(Serialize, Deserialize)]
+pub struct MachineComplianceResult {
+    pub machine_id: String,
+    pub hostname: String,
+    pub checks: Vec<ComplianceCheckResult>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ComplianceCheckResult {
+    pub check_id: String,
+    pub passed: bool,
+    pub details: String,
+}
+
+pub fn generate_compliance_report(
+    standard: &str,
     machines: Vec<Machine>,
-) -> Result<ComplianceReport, String> {
-    println!("[Compliance] A gerar relatório de conformidade...");
+) -> ComplianceReport {
+    let mut total_checks = 0;
+    let mut passed_checks = 0;
+    let mut machine_results = Vec::new();
     
-    let standard_name = match standard {
-        ComplianceStandard::ISO27001 => "ISO 27001",
-        ComplianceStandard::GDPR => "GDPR",
-        ComplianceStandard::SOC2 => "SOC 2",
-    };
-
-    let check_av = ISO27001_A12_2_1;
-    let mut passed = 0;
-    let mut failed = 0;
-
-    for machine in &machines {
-        let result = check_av.check(machine);
-        if result.passed { passed += 1; } else { failed += 1; }
+    for machine in machines {
+        let checks = run_all_checks(&machine);
+        
+        let check_results: Vec<ComplianceCheckResult> = checks.into_iter()
+            .map(|(check_id, result)| {
+                total_checks += 1;
+                if result.passed {
+                    passed_checks += 1;
+                }
+                
+                ComplianceCheckResult {
+                    check_id,
+                    passed: result.passed,
+                    details: result.details,
+                }
+            })
+            .collect();
+        
+        machine_results.push(MachineComplianceResult {
+            machine_id: machine.machine_id.clone(),
+            hostname: machine.hostname.clone(),
+            checks: check_results,
+        });
     }
-
-    Ok(ComplianceReport {
-        standard: standard_name.to_string(),
-        total_machines_checked: machines.len(),
-        passed_checks: passed,
-        failed_checks: failed,
-    })
+    
+    let failed_checks = total_checks - passed_checks;
+    let compliance_score = if total_checks > 0 {
+        (passed_checks as f32 / total_checks as f32) * 100.0
+    } else {
+        0.0
+    };
+    
+    ComplianceReport {
+        generated_at: chrono::Utc::now().to_rfc3339(),
+        standard: standard.to_string(),
+        total_checks,
+        passed_checks,
+        failed_checks,
+        compliance_score,
+        machines: machine_results,
+    }
 }

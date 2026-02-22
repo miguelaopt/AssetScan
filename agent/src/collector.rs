@@ -1,28 +1,25 @@
-// ============================================================
-// collector.rs — Coleta de informações do sistema
-// ============================================================
-
-
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use sysinfo::{Disks, System, Pid, ProcessesToUpdate};
+use sysinfo::{Disks, System, ProcessesToUpdate};
 use winreg::enums::*;
 use winreg::RegKey;
 use chrono::Utc;
 
-// Importa as estruturas do teu novo módulo
-use crate::network_collector::NetworkConnection;
+use crate::network_collector;
+use crate::screen_time_tracker::ScreenTimeEntry;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SystemReport {
     pub agent_version: String,
     pub hostname: String,
-    pub machine_id: String,           // UUID único persistente
+    pub machine_id: String,
+    pub local_ip: String, // NOVO!
     pub collected_at: String,
     pub hardware: HardwareInfo,
     pub software: Vec<SoftwareEntry>,
-    pub processes: Vec<ProcessInfo>,  // NOVO
-    pub network: Vec<NetworkConnection>, // NOVO v3.0: Dados de rede
+    pub processes: Vec<ProcessInfo>,
+    pub network: Vec<network_collector::NetworkConnection>,
+    pub screen_time: Vec<ScreenTimeEntry>, // NOVO!
     pub os: OsInfo,
 }
 
@@ -71,10 +68,6 @@ pub struct OsInfo {
     pub uptime_hours: u64,
 }
 
-// -------------------------------------------------
-// Coleta completa
-// -------------------------------------------------
-
 pub fn collect_full_report(config: &crate::config::Config) -> Result<SystemReport> {
     let mut sys = System::new_all();
     sys.refresh_all();
@@ -86,23 +79,22 @@ pub fn collect_full_report(config: &crate::config::Config) -> Result<SystemRepor
 
     let hostname = System::host_name().unwrap_or_else(|| "Unknown".to_string());
     let machine_id = get_or_create_machine_id()?;
+    let local_ip = network_collector::get_local_ip();
 
     Ok(SystemReport {
-        agent_version: "3.0.0".to_string(), // Actualizei para a v3.0!
+        agent_version: "3.0.0".to_string(),
         hostname,
         machine_id,
+        local_ip,
         collected_at: Utc::now().to_rfc3339(),
         hardware: collect_hardware(&sys),
         os: collect_os(&sys),
         software: collect_software()?,
         processes: collect_processes(&sys),
-        network: crate::network_collector::collect_network_stats(), // Chamada ao novo módulo
+        network: network_collector::collect_network_stats(),
+        screen_time: vec![], // Preenchido no main.rs
     })
 }
-
-// -------------------------------------------------
-// Hardware
-// -------------------------------------------------
 
 fn collect_hardware(sys: &System) -> HardwareInfo {
     let cpus = sys.cpus();
@@ -146,10 +138,6 @@ fn collect_hardware(sys: &System) -> HardwareInfo {
     }
 }
 
-// -------------------------------------------------
-// Sistema Operacional
-// -------------------------------------------------
-
 fn collect_os(_sys: &System) -> OsInfo {
     OsInfo {
         name: System::name().unwrap_or_else(|| "Windows".to_string()),
@@ -158,10 +146,6 @@ fn collect_os(_sys: &System) -> OsInfo {
         uptime_hours: System::uptime() / 3600,
     }
 }
-
-// -------------------------------------------------
-// Software Instalado
-// -------------------------------------------------
 
 fn collect_software() -> Result<Vec<SoftwareEntry>> {
     let mut list: Vec<SoftwareEntry> = Vec::new();
@@ -201,10 +185,6 @@ fn collect_software() -> Result<Vec<SoftwareEntry>> {
     Ok(list)
 }
 
-// -------------------------------------------------
-// Processos Ativos (NOVO)
-// -------------------------------------------------
-
 fn collect_processes(sys: &System) -> Vec<ProcessInfo> {
     sys.processes()
         .iter()
@@ -226,24 +206,17 @@ fn collect_processes(sys: &System) -> Vec<ProcessInfo> {
         .collect()
 }
 
-// -------------------------------------------------
-// Machine ID único e persistente
-// -------------------------------------------------
-
 fn get_or_create_machine_id() -> Result<String> {
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     
-    // Tenta ler ID existente
     if let Ok(key) = hklm.open_subkey(r"SOFTWARE\AssetScan") {
         if let Ok(id) = key.get_value::<String, _>("MachineID") {
             return Ok(id);
         }
     }
 
-    // Cria novo ID
     let new_id = uuid::Uuid::new_v4().to_string();
     
-    // Salva no registry
     let (key, _) = hklm.create_subkey(r"SOFTWARE\AssetScan")?;
     key.set_value("MachineID", &new_id)?;
 

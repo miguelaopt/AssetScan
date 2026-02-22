@@ -1,11 +1,6 @@
-// ============================================================
-// commands/audit.rs — Logs de auditoria
-// ============================================================
-
 use tauri::State;
-use rusqlite::params;
-use crate::database::DbPool;
-use crate::models::*;
+use crate::database::{self, DbPool};
+use crate::models::AuditLog;
 
 #[tauri::command]
 pub async fn get_audit_logs(
@@ -13,16 +8,16 @@ pub async fn get_audit_logs(
     pool: State<'_, DbPool>,
 ) -> Result<Vec<AuditLog>, String> {
     let conn = pool.lock().unwrap();
-    let limit = limit.unwrap_or(100);
-
+    let query_limit = limit.unwrap_or(100);
+    
     let mut stmt = conn.prepare(
         "SELECT id, timestamp, action, resource_type, resource_id, user, details
          FROM audit_logs
          ORDER BY timestamp DESC
-         LIMIT ?1"
+         LIMIT ?"
     ).map_err(|e| e.to_string())?;
-
-    let logs = stmt.query_map(params![limit], |row| {
+    
+    let logs = stmt.query_map([query_limit], |row| {
         Ok(AuditLog {
             id: row.get(0)?,
             timestamp: row.get(1)?,
@@ -32,10 +27,9 @@ pub async fn get_audit_logs(
             user: row.get(5)?,
             details: row.get(6)?,
         })
-    })
-    .map_err(|e| e.to_string())?
-    .collect::<rusqlite::Result<Vec<AuditLog>>>()
+    }).map_err(|e| e.to_string())?
+    .collect::<Result<Vec<_>, _>>()
     .map_err(|e| e.to_string())?;
-
+    
     Ok(logs)
 }

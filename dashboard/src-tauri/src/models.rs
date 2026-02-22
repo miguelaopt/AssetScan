@@ -167,3 +167,41 @@ pub struct WebhookEvent {
     pub timestamp: String,
     pub data: serde_json::Value,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScreenTimeEntry {
+    pub machine_id: String,
+    pub app_name: String,
+    pub total_seconds: u64,
+    pub date: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MachineWithIP {
+    #[serde(flatten)]
+    pub machine: Machine,
+    pub local_ip: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IPPolicy {
+    pub id: String,
+    pub machine_id: Option<String>,
+    pub ip_address: String,
+    pub action: String, // "block" | "allow"
+    pub reason: String,
+    pub created_at: String,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcessWithCPU {
+    pub id: i64,
+    pub machine_id: String,
+    pub pid: u32,
+    pub name: String,
+    pub exe_path: String,
+    pub memory_mb: f64,
+    pub cpu_percent: f32, // AGORA TEM VALOR REAL
+    pub captured_at: String,
+}

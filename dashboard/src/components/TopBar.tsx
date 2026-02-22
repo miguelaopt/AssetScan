@@ -1,65 +1,96 @@
-import { Sun, Moon, Search, Bell, User } from "lucide-react";
+import { Search, Bell, User, LogOut, Command } from "lucide-react";
 import { useState } from "react";
 
-interface Props {
-    theme: string;
-    onToggleTheme: () => void;
-}
-
-export default function TopBar({ theme, onToggleTheme }: Props) {
+export default function TopBar() {
     const [searchFocused, setSearchFocused] = useState(false);
-    const [showNotifications, setShowNotifications] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
 
     return (
-        <header className="h-20 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between px-8 sticky top-0 z-50 backdrop-blur-xl">
-            <div>
-                <h2 className="text-2xl font-bold text-white">{getPageTitle()}</h2>
-                <p className="text-sm text-slate-400">Monitorização em tempo real</p>
-            </div>
+        <header className="h-24 relative flex items-center justify-between px-8 z-40">
+            {/* Background */}
+            <div className="absolute inset-0 liquid-glass border-b border-white/5" />
 
-            <div className="flex items-center gap-4">
-                {/* Search */}
-                <div className={`flex items-center gap-3 px-4 py-2.5 rounded-full border transition-all duration-300 ${searchFocused ? 'w-96 bg-slate-800 border-blue-500 ring-2 ring-blue-500/20' : 'w-64 bg-slate-800 border-slate-700'}`}>
-                    <Search className={`w-4 h-4 ${searchFocused ? 'text-blue-500' : 'text-slate-500'}`} />
-                    <input type="text" placeholder="Pesquisar..." className="flex-1 bg-transparent outline-none text-sm text-white" onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} />
+            {/* Content */}
+            <div className="relative z-10 flex items-center justify-between w-full">
+                {/* Left: Title */}
+                <div className="spring-in">
+                    <h2 className="text-3xl font-bold text-white tracking-tight">
+                        {getPageTitle()}
+                    </h2>
+                    <p className="text-sm text-gray-500 font-medium mt-1">
+                        Monitorização em tempo real • {new Date().toLocaleDateString('pt-PT')}
+                    </p>
                 </div>
 
-                {/* Theme Toggle */}
-                <button onClick={onToggleTheme} className="p-2.5 rounded-lg hover:bg-slate-700 transition-colors z-50 relative cursor-pointer">
-                    {theme === "dark" ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-blue-400" />}
-                </button>
+                {/* Right: Actions */}
+                <div className="flex items-center gap-4">
+                    {/* Search com estilo Apple */}
+                    <div
+                        className={`
+              relative flex items-center gap-3 px-5 py-3 rounded-2xl
+              transition-all duration-500 ease-out
+              ${searchFocused
+                                ? 'w-96 liquid-glass-active'
+                                : 'w-72 liquid-glass'
+                            }
+            `}
+                    >
+                        <Search className={`w-4 h-4 transition-colors ${searchFocused ? 'text-emerald-400' : 'text-gray-600'}`} />
+                        <input
+                            type="text"
+                            placeholder="Pesquisar máquinas..."
+                            className="flex-1 bg-transparent border-none outline-none text-[15px] text-white placeholder-gray-600 font-medium"
+                            onFocus={() => setSearchFocused(true)}
+                            onBlur={() => setSearchFocused(false)}
+                        />
+                        <div className="flex items-center gap-1 text-xs text-gray-600 font-semibold">
+                            <Command className="w-3 h-3" />
+                            <span>K</span>
+                        </div>
+                    </div>
 
-                {/* Notifications */}
-                <div className="relative z-50">
-                    <button onClick={() => setShowNotifications(!showNotifications)} className="p-2.5 rounded-lg hover:bg-slate-700 transition-colors relative cursor-pointer">
-                        <Bell className="w-5 h-5 text-slate-400" />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    {/* Notifications */}
+                    <button
+                        onClick={() => alert('📬 Tens 3 notificações novas!')}
+                        className="relative p-3 rounded-xl liquid-glass-hover ripple-container"
+                    >
+                        <Bell className="w-5 h-5 text-gray-400" />
+                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse ring-2 ring-black" />
                     </button>
-                    {showNotifications && (
-                        <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-slate-700 rounded-xl shadow-xl p-4">
-                            <h4 className="text-white font-bold mb-2">Notificações</h4>
-                            <p className="text-sm text-slate-400">Sem novos alertas.</p>
-                        </div>
-                    )}
-                </div>
 
-                {/* User Menu */}
-                <div className="relative z-50">
-                    <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 pl-3 pr-4 py-2 rounded-lg hover:bg-slate-700 transition-colors cursor-pointer">
-                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                            <User className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="text-left">
-                            <p className="text-sm font-medium text-white">Admin</p>
-                        </div>
-                    </button>
-                    {showUserMenu && (
-                        <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl p-2">
-                            <button className="w-full text-left px-4 py-2 text-sm text-white hover:bg-slate-700 rounded-lg">Perfil</button>
-                            <button className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 rounded-lg">Terminar Sessão</button>
-                        </div>
-                    )}
+                    {/* User Menu */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowUserMenu(!showUserMenu)}
+                            className="flex items-center gap-3 pl-3 pr-4 py-2 rounded-xl liquid-glass-hover ripple-container"
+                        >
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                                <User className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-[15px] font-semibold text-white">Admin</p>
+                                <p className="text-xs text-gray-500 font-medium">Administrador</p>
+                            </div>
+                        </button>
+
+                        {/* Dropdown */}
+                        {showUserMenu && (
+                            <div className="absolute right-0 top-full mt-3 w-56 liquid-glass rounded-2xl p-2 spring-in border border-white/10 shadow-2xl">
+                                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[15px] text-gray-300 hover:text-white transition-colors">
+                                    <User className="w-4 h-4" />
+                                    <span>Perfil</span>
+                                </button>
+                                <div className="my-2 h-px bg-white/5" />
+                                <button
+                                    onClick={() => confirm('Logout?') && (window.location.href = '/')}
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 text-[15px] text-red-400 hover:text-red-300 transition-colors"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                    <span>Sair</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </header>
@@ -67,11 +98,16 @@ export default function TopBar({ theme, onToggleTheme }: Props) {
 }
 
 function getPageTitle() {
-    const path = window.location.pathname;
     const titles: Record<string, string> = {
-        '/': 'Dashboard', '/machines': 'Máquinas', '/vulnerabilities': 'Vulnerabilidades',
-        '/policies': 'Políticas', '/compliance': 'Compliance', '/executive': 'Dashboard Executivo',
-        '/webhooks': 'Webhooks', '/audit': 'Auditoria', '/settings': 'Configurações',
+        '/': 'Dashboard',
+        '/machines': 'Máquinas',
+        '/screen-time': 'Screen Time',
+        '/vulnerabilities': 'Vulnerabilidades',
+        '/policies': 'Políticas de Segurança',
+        '/compliance': 'Compliance',
+        '/webhooks': 'Webhooks',
+        '/audit': 'Auditoria',
+        '/settings': 'Configurações',
     };
-    return titles[path] || 'AssetScan';
+    return titles[window.location.pathname] || 'AssetScan';
 }

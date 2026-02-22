@@ -215,8 +215,22 @@ pub fn initialize(conn: &Connection) -> Result<()> {
             response_body TEXT,
             triggered_at TEXT NOT NULL
         );
+        -- Screen Time
+        CREATE TABLE IF NOT EXISTS screen_time (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            machine_id TEXT NOT NULL,
+            app_name TEXT NOT NULL,
+            total_seconds INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            UNIQUE(machine_id, app_name, date)
+        );
+
+        -- CORREÇÃO: Adicionado IF NOT EXISTS
+        CREATE INDEX IF NOT EXISTS idx_screen_time_machine ON screen_time(machine_id);
+        CREATE INDEX IF NOT EXISTS idx_screen_time_date ON screen_time(date);
     ")?;
 
+    let _ = conn.execute("ALTER TABLE machines ADD COLUMN local_ip TEXT DEFAULT '0.0.0.0'", []);
     Ok(())
 }
 
@@ -718,4 +732,116 @@ pub fn list_machines_filtered(
     })?.collect::<Result<Vec<Machine>>>()?;
 
     Ok(machines)
+}
+
+// ============================================================
+// v3.1 - NOVAS FUNÇÕES
+// ============================================================
+
+// Screen Time
+pub fn insert_screen_time(
+    pool: &DbPool,
+    machine_id: &str,
+    app_name: &str,
+    total_seconds: u64,
+    date: &str,
+) -> Result<()> {
+    let conn = pool.lock().unwrap();
+    
+    conn.execute(
+        "INSERT OR REPLACE INTO screen_time (machine_id, app_name, total_seconds, date)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![machine_id, app_name, total_seconds as i64, date],
+    )?;
+    
+    Ok(())
+}
+
+pub fn get_screen_time(
+    pool: &DbPool,
+    machine_id: &str,
+    date: Option<&str>,
+) -> Result<Vec<ScreenTimeEntry>> {
+    let conn = pool.lock().unwrap();
+    
+    // Cria query e params baseado em date
+    let mut query = String::from(
+        "SELECT machine_id, app_name, total_seconds, date FROM screen_time WHERE machine_id = ?1"
+    );
+    
+    if date.is_some() {
+        query.push_str(" AND date = ?2");
+    }
+    
+    query.push_str(" ORDER BY total_seconds DESC");
+    
+    let mut stmt = conn.prepare(&query)?;
+    
+    // Executa query com params dinâmicos
+    let entries: Result<Vec<ScreenTimeEntry>> = if let Some(d) = date {
+        stmt.query_map(params![machine_id, d], |row| {
+            Ok(ScreenTimeEntry {
+                machine_id: row.get(0)?,
+                app_name: row.get(1)?,
+                total_seconds: row.get::<_, i64>(2)? as u64,
+                date: row.get(3)?,
+            })
+        })?
+        .collect()
+    } else {
+        stmt.query_map(params![machine_id], |row| {
+            Ok(ScreenTimeEntry {
+                machine_id: row.get(0)?,
+                app_name: row.get(1)?,
+                total_seconds: row.get::<_, i64>(2)? as u64,
+                date: row.get(3)?,
+            })
+        })?
+        .collect()
+    };
+    
+    entries
+}
+
+// Actualiza máquina com IP
+pub fn update_machine_ip(
+    pool: &DbPool,
+    machine_id: &str,
+    local_ip: &str,
+) -> Result<()> {
+    let conn = pool.lock().unwrap();
+    
+    conn.execute(
+        "UPDATE machines SET local_ip = ?1, last_seen = ?2 WHERE machine_id = ?3",
+        params![local_ip, chrono::Utc::now().to_rfc3339(), machine_id],
+    )?;
+    
+    Ok(())
+}
+
+// Políticas com IP blocking
+pub fn create_ip_policy(
+    pool: &DbPool,
+    machine_id: Option<&str>,
+    ip_address: &str,
+    action: &str,
+    reason: &str,
+) -> Result<String> {
+    let conn = pool.lock().unwrap();
+    let id = uuid::Uuid::new_v4().to_string();
+    
+    conn.execute(
+        "INSERT INTO policies (id, machine_id, policy_type, target, action, reason, created_by, created_at, enabled)
+         VALUES (?1, ?2, 'ip', ?3, ?4, ?5, 'admin', ?6, 1)",
+        params![
+            &id,
+            machine_id,
+            ip_address,
+            action,
+            reason,
+            chrono::Utc::now().to_rfc3339()
+        ],
+    )?;
+    
+    Ok(id)
 }

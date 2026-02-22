@@ -1,7 +1,3 @@
-// ============================================================
-// AssetScan Agent v2.0 — Entry Point
-// Coleta dados, aplica políticas e comunica com o servidor
-// ============================================================
 #![windows_subsystem = "windows"]
 
 mod collector;
@@ -10,6 +6,7 @@ mod config;
 mod notifications;
 mod screenshot;
 mod network_collector;
+mod screen_time_tracker;
 
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -18,22 +15,18 @@ use tokio::time;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Banner
     println!("╔═══════════════════════════════════════════════════════╗");
-    println!("║         AssetScan Agent v2.0.0                        ║");
-    println!("║    Gestão e Segurança de Endpoints                    ║");
+    println!("║         AssetScan Agent v3.0.0                        ║");
     println!("╚═══════════════════════════════════════════════════════╝\n");
 
-    // Carrega configuração
     let config = config::Config::load()
         .context("Falha ao carregar configuração")?;
 
-    println!("[AssetScan] Configuração carregada");
-    println!("[AssetScan] Servidor: {}", config.server_url);
-    println!("[AssetScan] Intervalo: {}min", config.interval_minutes);
-    println!("[AssetScan] Modo: {}\n", 
-        if config.enforcement_enabled { "ENFORCEMENT" } else { "MONITOR" }
-    );
+    println!("[Agent] Servidor: {}", config.server_url);
+    println!("[Agent] Intervalo: {}min\n", config.interval_minutes);
+
+    // Inicia screen time tracker em background
+    tokio::spawn(screen_time_tracker::start_tracking());
 
     // Loop principal
     let mut interval = time::interval(Duration::from_secs(config.interval_minutes * 60));
@@ -42,50 +35,39 @@ async fn main() -> Result<()> {
         interval.tick().await;
 
         if let Err(e) = run_cycle(&config).await {
-            eprintln!("[AssetScan] ERRO no ciclo: {}", e);
-            // Continua mesmo com erro — não queremos que o agente pare
+            eprintln!("[Agent] ERRO: {}", e);
         }
     }
 }
 
 async fn run_cycle(config: &config::Config) -> Result<()> {
-    let start = std::time::Instant::now();
-    println!("\n[{}] ═══ Iniciando Ciclo ═══", Utc::now().format("%H:%M:%S"));
+    println!("\n[{}] ═══ Ciclo Iniciado ═══", Utc::now().format("%H:%M:%S"));
 
-    // 1. Coleta de dados do sistema
-    println!("[Coleta] A recolher informações do sistema...");
+    // 1. Coleta dados
     let mut report = collector::collect_full_report(config)?;
-
-    let network_stats = network_collector::collect_network_stats();
-    println!("[Coleta] ✓ {} conexões de rede ativas", network_stats.len());
-    println!("[Coleta] ✓ {} processos | {} apps instaladas", 
+    
+    // 2. Adiciona screen time
+    report.screen_time = screen_time_tracker::get_daily_stats();
+    
+    println!("[Coleta] ✓ {} processos | {} apps | {} conexões", 
         report.processes.len(), 
-        report.software.len()
+        report.software.len(),
+        report.network.len()
     );
 
-    // 2. Envia dados ao servidor
-    println!("[Upload] A enviar dados para o servidor...");
+    // 3. Envia ao servidor
     let policies = send_report_and_get_policies(&report, config).await?;
-    println!("[Upload] ✓ Recebidas {} políticas", policies.len());
+    println!("[Server] ✓ {} políticas recebidas", policies.len());
 
-    // 3. Aplica políticas de segurança (se enforcement activo)
+    // 4. Aplica enforcement
     if config.enforcement_enabled {
-        println!("[Enforcement] A aplicar políticas...");
         let blocked = enforcer::enforce_policies(&policies, &report.processes)?;
-        
         if blocked > 0 {
-            println!("[Enforcement] ⚠ {} processo(s) bloqueado(s)", blocked);
-            notifications::notify_blocked_apps(blocked);
-        } else {
-            println!("[Enforcement] ✓ Nenhuma violação detectada");
+            println!("[Enforcement] ⚠ {} bloqueado(s)", blocked);
         }
-    } else {
-        println!("[Enforcement] Modo monitor — apenas a reportar");
     }
 
-    let elapsed = start.elapsed();
-    println!("[Concluído] Ciclo completado em {:.2}s\n", elapsed.as_secs_f64());
-
+    println!("[Completo] Ciclo OK\n");
     Ok(())
 }
 
@@ -102,22 +84,17 @@ async fn send_report_and_get_policies(
     let response = client
         .post(&url)
         .header("X-API-Key", &config.api_key)
-        .header("X-Agent-Version", "2.0.0")
+        .header("X-Agent-Version", "3.0.0")
         .json(report)
         .send()
         .await
-        .context("Falha ao contactar o servidor")?;
+        .context("Falha ao contactar servidor")?;
 
     if !response.status().is_success() {
-        anyhow::bail!(
-            "Servidor retornou erro: {} {}",
-            response.status().as_u16(),
-            response.status().canonical_reason().unwrap_or("Unknown")
-        );
+        anyhow::bail!("Servidor erro: {}", response.status());
     }
 
     let response_data: ServerResponse = response.json().await?;
-    
     Ok(response_data.policies)
 }
 

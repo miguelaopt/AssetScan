@@ -1,7 +1,3 @@
-// ============================================================
-// commands/policies.rs — Gestão de políticas
-// ============================================================
-
 use tauri::State;
 use crate::database::{self, DbPool};
 use crate::models::*;
@@ -15,7 +11,7 @@ pub async fn create_policy(
     reason: String,
     pool: State<'_, DbPool>,
 ) -> Result<String, String> {
-    let policy_id = database::create_policy(
+    let id = database::create_policy(
         &pool,
         machine_id.as_deref(),
         &policy_type,
@@ -23,20 +19,18 @@ pub async fn create_policy(
         &action,
         &reason,
         "admin",
-    )
-    .map_err(|e| e.to_string())?;
-
+    ).map_err(|e| e.to_string())?;
+    
     database::log_audit(
         &pool,
         "create_policy",
         "policy",
-        &policy_id,
+        &id,
         "admin",
         &format!("{} {} for {}", action, policy_type, target),
-    )
-    .ok();
-
-    Ok(policy_id)
+    ).ok();
+    
+    Ok(id)
 }
 
 #[tauri::command]
@@ -55,7 +49,7 @@ pub async fn delete_policy(
 ) -> Result<(), String> {
     database::delete_policy(&pool, &policy_id)
         .map_err(|e| e.to_string())?;
-
+    
     database::log_audit(
         &pool,
         "delete_policy",
@@ -63,8 +57,7 @@ pub async fn delete_policy(
         &policy_id,
         "admin",
         "Policy deleted",
-    )
-    .ok();
-
+    ).ok();
+    
     Ok(())
 }

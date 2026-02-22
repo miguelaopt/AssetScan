@@ -1,5 +1,5 @@
-// agent/src/network_collector.rs
 use serde::{Deserialize, Serialize};
+use std::net::UdpSocket;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NetworkConnection {
@@ -9,15 +9,33 @@ pub struct NetworkConnection {
     pub state: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NetworkInfo {
+    pub local_ip: String,
+    pub connections: Vec<NetworkConnection>,
+}
+
 pub fn collect_network_stats() -> Vec<NetworkConnection> {
-    // Aqui usarias sysinfo ou a API GetExtendedTcpTable do Windows
-    // Para simplificar, retornamos dados simulados
+    // Placeholder - retorna conexão exemplo
     vec![
         NetworkConnection {
             pid: 1024,
-            local_ip: "192.168.1.50:443".to_string(),
-            remote_ip: "104.18.2.1:443".to_string(),
+            local_ip: format!("{}:443", get_local_ip()),
+            remote_ip: "1.1.1.1:443".to_string(),
             state: "ESTABLISHED".to_string(),
         }
     ]
+}
+
+pub fn get_local_ip() -> String {
+    // Tenta descobrir IP local fazendo conexão UDP
+    if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
+        if socket.connect("8.8.8.8:80").is_ok() {
+            if let Ok(addr) = socket.local_addr() {
+                return addr.ip().to_string();
+            }
+        }
+    }
+    
+    "127.0.0.1".to_string()
 }

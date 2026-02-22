@@ -4,6 +4,8 @@ import { Monitor, Cpu, HardDrive } from "lucide-react";
 import { useMachines, Machine } from "../hooks/useMachines";
 import { ViewModeToggle, ViewMode } from "../components/ViewModeToggle";
 import { AdvancedFilter, FilterOptions } from "../components/AdvancedFilter";
+import { exportMachinesPDF } from "../utils/exportPDF";
+import { FileDown } from "lucide-react";
 
 export default function Machines() {
     const { machines, loading } = useMachines();
@@ -70,6 +72,7 @@ export default function Machines() {
                         <th className="p-4 font-semibold">OS</th>
                         <th className="p-4 font-semibold text-right">CPU Cores</th>
                         <th className="p-4 font-semibold text-right">RAM (GB)</th>
+                        <th className="p-4 font-semibold">IP Local</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700">
@@ -88,6 +91,9 @@ export default function Machines() {
                             <td className="p-4 text-slate-300 text-sm">{m.os_name}</td>
                             <td className="p-4 text-slate-300 text-sm text-right">{m.cpu_cores}</td>
                             <td className="p-4 text-slate-300 text-sm text-right">{(m.ram_total_mb / 1024).toFixed(1)}</td>
+                            <td className="text-sm font-mono text-gray-400">
+                                {machine.local_ip || '0.0.0.0'}
+                            </td>
                         </tr>
                     ))}
                 </tbody>
@@ -127,16 +133,19 @@ export default function Machines() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-white mb-2">Máquinas</h1>
-                    <p className="text-slate-400">{filteredMachines.length} máquina(s) encontrada(s)</p>
+                    <h1 className="text-3xl font-bold text-white">Máquinas</h1>
+                    <p className="text-gray-500 mt-1">Gestão de endpoints</p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <AdvancedFilter onFilterChange={setFilters} />
-                    <ViewModeToggle value={viewMode} onChange={setViewMode} />
-                </div>
+                <button
+                    onClick={() => exportMachinesPDF(machines)}
+                    className="btn-apple-primary flex items-center gap-2 ripple-container"
+                >
+                    <FileDown className="w-4 h-4" />
+                    Exportar PDF
+                </button>
             </div>
 
             {/* Passamos as filteredMachines para as funções de renderização */}

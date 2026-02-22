@@ -1,103 +1,84 @@
 import { useState, useEffect } from "react";
-import { Webhook, Plus, Activity, Trash2, X } from "lucide-react";
+import { Webhook, Plus, Trash2, Power } from "lucide-react";
 
-interface WebhookEntry {
+interface WebhookConfig {
     id: string;
     name: string;
     url: string;
     events: string[];
-    status: 'active' | 'error';
-    lastTrigger: string;
+    enabled: boolean;
 }
 
 export default function Webhooks() {
-    const [webhooks, setWebhooks] = useState<WebhookEntry[]>([]);
-    const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({ name: "", url: "", event: "alert.cpu_high" });
+    const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
+    const [showCreate, setShowCreate] = useState(false);
 
-    useEffect(() => {
-        document.title = "Webhooks - AssetScan";
-        // invoke<WebhookEntry[]>("list_webhooks").then(setWebhooks).catch(console.error);
-    }, []);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        const newWebhook: WebhookEntry = {
-            id: `wh-${Date.now()}`,
-            name: formData.name,
-            url: formData.url,
-            events: [formData.event],
-            status: 'active',
-            lastTrigger: 'Nunca',
-        };
-
-        setWebhooks([...webhooks, newWebhook]);
-        setShowModal(false);
-        setFormData({ name: "", url: "", event: "alert.cpu_high" });
-    };
-
-    const handleDelete = (id: string) => {
-        setWebhooks(webhooks.filter(w => w.id !== id));
-    };
+    const eventTypes = [
+        'machine.online',
+        'machine.offline',
+        'alert.cpu_high',
+        'alert.disk_full',
+        'policy.violated',
+        'vulnerability.found',
+    ];
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white mb-2">Integrações & Webhooks</h1>
-                    <p className="text-slate-400">Notifique sistemas externos em tempo real</p>
+                    <h1 className="text-2xl font-bold text-white mb-2">Webhooks</h1>
+                    <p className="text-gray-400">Integração com serviços externos</p>
                 </div>
                 <button
-                    onClick={() => setShowModal(true)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    onClick={() => setShowCreate(true)}
+                    className="btn-primary flex items-center gap-2"
                 >
-                    <Plus className="w-4 h-4" /> Novo Webhook
+                    <Plus className="w-4 h-4" />
+                    Novo Webhook
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* List */}
+            <div className="space-y-4">
                 {webhooks.length === 0 ? (
-                    <div className="col-span-full bg-slate-800 border border-slate-700 rounded-xl p-8 text-center">
-                        <Webhook className="w-12 h-12 text-slate-500 mx-auto mb-4 opacity-50" />
-                        <p className="text-slate-400">Nenhum webhook configurado. Clique em "Novo Webhook" para começar.</p>
+                    <div className="glass rounded-xl p-12 text-center">
+                        <Webhook className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                        <p className="text-gray-400 mb-4">Nenhum webhook configurado</p>
+                        <button onClick={() => setShowCreate(true)} className="btn-ghost">
+                            Criar Primeiro Webhook
+                        </button>
                     </div>
                 ) : (
-                    webhooks.map((wh) => (
-                        <div key={wh.id} className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition-colors">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-slate-900 rounded-lg">
-                                        <Webhook className="w-5 h-5 text-blue-500" />
+                    webhooks.map(wh => (
+                        <div key={wh.id} className="glass-hover rounded-xl p-6">
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <h3 className="text-lg font-semibold text-white">{wh.name}</h3>
+                                        {wh.enabled ? (
+                                            <span className="badge badge-success">Ativo</span>
+                                        ) : (
+                                            <span className="badge badge-error">Desativado</span>
+                                        )}
                                     </div>
-                                    <div>
-                                        <h3 className="font-semibold text-white">{wh.name}</h3>
-                                        <p className="text-xs text-slate-500 font-mono mt-1 truncate max-w-[200px]" title={wh.url}>{wh.url}</p>
+                                    <p className="text-sm text-gray-400 font-mono mb-3">{wh.url}</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {wh.events.map(ev => (
+                                            <span key={ev} className="badge badge-info">
+                                                {ev}
+                                            </span>
+                                        ))}
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleDelete(wh.id)}
-                                    className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
 
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                {wh.events.map(ev => (
-                                    <span key={ev} className="bg-slate-700 text-slate-300 px-2 py-1 rounded text-xs">
-                                        {ev}
-                                    </span>
-                                ))}
-                            </div>
-
-                            <div className="flex items-center justify-between pt-4 border-t border-slate-700">
                                 <div className="flex items-center gap-2">
-                                    <span className={`w-2 h-2 rounded-full ${wh.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
-                                    <span className="text-xs text-slate-400">{wh.status === 'active' ? 'Ativo' : 'Erro no último disparo'}</span>
-                                </div>
-                                <div className="flex items-center gap-1 text-xs text-slate-500">
-                                    <Activity className="w-3 h-3" /> {wh.lastTrigger}
+                                    <button className="btn-icon">
+                                        <Power className="w-4 h-4" />
+                                    </button>
+                                    <button className="btn-icon text-red-500 hover:bg-red-500/10">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -105,71 +86,44 @@ export default function Webhooks() {
                 )}
             </div>
 
-            {showModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-white">Configurar Novo Webhook</h2>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
+            {/* Create Modal */}
+            {showCreate && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="glass rounded-xl p-6 w-full max-w-md animate-scale-in">
+                        <h2 className="text-xl font-bold text-white mb-4">Novo Webhook</h2>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">Nome da Integração</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="ex: Alertas Slack"
-                                    className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 outline-none transition-colors"
-                                />
+                                <label className="block text-sm font-medium text-gray-400 mb-2">Nome</label>
+                                <input type="text" className="input" placeholder="Slack Notifications" />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">URL de Destino (Endpoint)</label>
-                                <input
-                                    type="url"
-                                    required
-                                    value={formData.url}
-                                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                                    placeholder="https://hooks.slack.com/..."
-                                    className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors"
-                                />
+                                <label className="block text-sm font-medium text-gray-400 mb-2">URL</label>
+                                <input type="url" className="input" placeholder="https://hooks.slack.com/..." />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">Evento a Subscrever</label>
-                                <select
-                                    value={formData.event}
-                                    onChange={(e) => setFormData({ ...formData, event: e.target.value })}
-                                    className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 outline-none transition-colors"
-                                >
-                                    <option value="machine.offline">Máquina Offline</option>
-                                    <option value="alert.cpu_high">Alerta: CPU Crítico (&gt;90%)</option>
-                                    <option value="policy.violated">Alerta: Política de Segurança Violada</option>
-                                    <option value="vulnerability.found">Alerta: Nova Vulnerabilidade Detetada</option>
-                                </select>
+                                <label className="block text-sm font-medium text-gray-400 mb-2">Eventos</label>
+                                <div className="space-y-2">
+                                    {eventTypes.map(ev => (
+                                        <label key={ev} className="flex items-center gap-2">
+                                            <input type="checkbox" className="rounded" />
+                                            <span className="text-sm text-gray-300">{ev}</span>
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="flex gap-3 pt-4 border-t border-slate-700 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
-                                >
+                            <div className="flex gap-3 pt-4">
+                                <button onClick={() => setShowCreate(false)} className="flex-1 btn-ghost">
                                     Cancelar
                                 </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                                >
-                                    Guardar Webhook
+                                <button className="flex-1 btn-primary">
+                                    Criar
                                 </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             )}

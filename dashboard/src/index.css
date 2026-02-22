@@ -1,24 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap');
-
-@layer base {
-    :root {
-        --bg-primary: 10 14 26;
-        --bg-secondary: 17 24 39;
-        --bg-tertiary: 31 41 55;
-        --accent-primary: 0 217 255;
-        --accent-secondary: 0 132 255;
-        --success: 16 185 129;
-        --warning: 245 158 11;
-        --error: 239 68 68;
-        --text-primary: 249 250 251;
-        --text-secondary: 209 213 219;
-        --text-tertiary: 156 163 175;
-    }
-}
 
 * {
     margin: 0;
@@ -27,81 +11,262 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
-    background: rgb(var(--bg-primary));
-    color: rgb(var(--text-primary));
-    line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    background: #000000;
+    color: #FFFFFF;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+/* ═══════════════════════════════════════
+   LIQUID GLASS (Apple Vision Pro Style)
+   ═══════════════════════════════════════ */
+
+.liquid-glass {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
-::-webkit-scrollbar-track {
-    background: rgb(var(--bg-secondary));
+.liquid-glass-hover {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-::-webkit-scrollbar-thumb {
-    background: rgb(var(--bg-tertiary));
-    border-radius: 4px;
+    .liquid-glass-hover:hover {
+        background: rgba(0, 0, 0, 0.8);
+        border-color: rgba(16, 185, 129, 0.3);
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(16, 185, 129, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    }
+
+.liquid-glass-active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 16px 0 rgba(16, 185, 129, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
 }
 
-.glass {
-    background: rgba(17, 24, 39, 0.7);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+/* ═══════════════════════════════════════
+   SPRING ANIMATIONS (iOS Style)
+   ═══════════════════════════════════════ */
+
+.spring-in {
+    animation: spring-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.glass-hover:hover {
-    background: rgba(17, 24, 39, 0.85);
-    border-color: rgba(0, 217, 255, 0.3);
+.spring-bounce:active {
+    animation: spring-bounce 0.3s ease-out;
 }
 
-.text-gradient {
-    background: linear-gradient(135deg, rgb(var(--accent-primary)) 0%, rgb(var(--accent-secondary)) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+@keyframes spring-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+    }
+
+    60% {
+        opacity: 1;
+        transform: scale(1.02) translateY(-2px);
+    }
+
+    100% {
+        transform: scale(1) translateY(0);
+    }
 }
 
-.card-hover {
+@keyframes spring-bounce {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* ═══════════════════════════════════════
+   BUTTONS (Apple Style)
+   ═══════════════════════════════════════ */
+
+.btn-apple-primary {
+    position: relative;
+    padding: 12px 32px;
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+    .btn-apple-primary::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s;
+    }
+
+    .btn-apple-primary:hover::before {
+        left: 100%;
+    }
+
+    .btn-apple-primary:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.5);
+    }
+
+    .btn-apple-primary:active {
+        transform: translateY(0) scale(0.98);
+    }
+
+/* ═══════════════════════════════════════
+   RIPPLE EFFECT (Click Animation)
+   ═══════════════════════════════════════ */
+
+.ripple-container {
+    position: relative;
+    overflow: hidden;
+}
+
+    .ripple-container::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(16, 185, 129, 0.5);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+    }
+
+    .ripple-container:active::after {
+        animation: ripple-effect 0.6s ease-out;
+    }
+
+@keyframes ripple-effect {
+    0% {
+        width: 0;
+        height: 0;
+        opacity: 1;
+    }
+
+    100% {
+        width: 300px;
+        height: 300px;
+        opacity: 0;
+    }
+}
+
+/* ═══════════════════════════════════════
+   TABS (iOS Style)
+   ═══════════════════════════════════════ */
+
+.tab-button {
+    position: relative;
+    padding: 12px 24px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    font-size: 15px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-    .card-hover:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 217, 255, 0.2);
+    .tab-button:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.05);
     }
 
-.btn-primary {
-    @apply px-6 py-3 bg-gradient-to-r from-cyber-500 to-deep-blue-500 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cyber-500/40 hover:-translate-y-0.5;
+.tab-button-active {
+    color: white;
+    background: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.btn-ghost {
-    @apply px-6 py-3 bg-transparent border border-cyber-500 text-cyber-500 font-semibold rounded-lg transition-all duration-300 hover:bg-cyber-500/10;
+    .tab-button-active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 20%;
+        right: 20%;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #10B981, transparent);
+        border-radius: 3px;
+    }
+
+/* ═══════════════════════════════════════
+   BADGES (Apple Style)
+   ═══════════════════════════════════════ */
+
+.badge-apple {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(16, 185, 129, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #10B981;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.input {
-    @apply w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 transition-all focus:outline-none focus:border-cyber-500 focus:ring-2 focus:ring-cyber-500/20;
+.badge-apple-online {
+    animation: glow-pulse 2s ease-in-out infinite;
 }
 
-.badge {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide;
+/* ═══════════════════════════════════════
+   SCROLLBAR (Apple Style)
+   ═══════════════════════════════════════ */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
 }
 
-.badge-success {
-    @apply bg-emerald-500/15 text-emerald-500 border border-emerald-500/30;
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
 }
 
-.badge-warning {
-    @apply bg-amber-500/15 text-amber-500 border border-amber-500/30;
+::-webkit-scrollbar-thumb {
+    background: rgba(16, 185, 129, 0.3);
+    border-radius: 10px;
+    border: 2px solid rgba(0, 0, 0, 0.3);
 }
 
-.badge-error {
-    @apply bg-red-500/15 text-red-500 border border-red-500/30;
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(16, 185, 129, 0.5);
+    }
+
+/* ═══════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════ */
+
+.text-gradient-apple {
+    background: linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.badge-online {
-    @apply bg-cyber-500/15 text-cyber-500 border border-cyber-500/30 animate-pulse;
+.glow-green {
+    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.6));
 }

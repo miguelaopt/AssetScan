@@ -31,12 +31,21 @@ pub struct AgentReport {
     pub agent_version: String,
     pub hostname: String,
     pub machine_id: String,
+    pub local_ip: String, // NOVO!
     pub collected_at: String,
     pub hardware: HardwarePayload,
     pub software: Vec<SoftwarePayload>,
-    pub processes: Vec<ProcessPayload>,  // NOVO
-    pub network: Option<Vec<NetworkConnectionPayload>>,  // NOVO v3.0: Dados de rede
+    pub processes: Vec<ProcessPayload>,
+    pub network_connections: Option<Vec<NetworkConnectionPayload>>,
+    pub screen_time: Vec<ScreenTimePayload>, // NOVO!
     pub os: OsPayload,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ScreenTimePayload {
+    pub app_name: String,
+    pub total_seconds: u64,
+    pub date: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -145,12 +154,12 @@ async fn receive_report(
     Json(report): Json<AgentReport>,
 ) -> Result<Json<ApiResponse>, StatusCode> {
     println!(
-        "[Server] Relatório v{} recebido de: {} (ID: {}) em {}",
-        report.agent_version, report.hostname, report.machine_id, report.collected_at
+        "[Server] v{} de: {} (IP: {})",
+        report.agent_version, report.hostname, report.local_ip
     );
 
-    // 1. Upsert da máquina
-    let db_machine_id = database::upsert_machine(
+    // Upsert máquina COM IP
+    database::upsert_machine(
         &pool,
         &report.machine_id,
         &report.hostname,
@@ -165,80 +174,73 @@ async fn receive_report(
         &report.os.kernel_version,
         report.os.uptime_hours as i64,
     )
-    .map_err(|e| {
-        eprintln!("[Server] Erro ao salvar máquina: {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // 2. Atualiza discos
-    let disks: Vec<DiskInfo> = report
-        .hardware
-        .disks
-        .iter()
-        .map(|d| DiskInfo {
-            name: d.name.clone(),
-            mount_point: d.mount_point.clone(),
-            total_gb: d.total_gb,
-            free_gb: d.free_gb,
-            fs_type: d.fs_type.clone(),
-        })
-        .collect();
+    // Actualiza IP
+    database::update_machine_ip(&pool, &report.machine_id, &report.local_ip).ok();
 
+    // Discos
+    let disks: Vec<DiskInfo> = report.hardware.disks.iter().map(|d| DiskInfo {
+        name: d.name.clone(),
+        mount_point: d.mount_point.clone(),
+        total_gb: d.total_gb,
+        free_gb: d.free_gb,
+        fs_type: d.fs_type.clone(),
+    }).collect();
     database::update_disks(&pool, &report.machine_id, &disks)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // 3. Atualiza software
-    let software: Vec<SoftwareEntry> = report
-        .software
-        .iter()
-        .map(|s| SoftwareEntry {
-            name: s.name.clone(),
-            version: s.version.clone(),
-            publisher: s.publisher.clone(),
-            install_date: s.install_date.clone(),
-        })
-        .collect();
-
+    // Software
+    let software: Vec<SoftwareEntry> = report.software.iter().map(|s| SoftwareEntry {
+        name: s.name.clone(),
+        version: s.version.clone(),
+        publisher: s.publisher.clone(),
+        install_date: s.install_date.clone(),
+    }).collect();
     database::update_software(&pool, &report.machine_id, &software)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // 4. Atualiza processos (NOVO)
-    let processes: Vec<ProcessInfo> = report
-        .processes
-        .iter()
-        .map(|p| ProcessInfo {
-            id: 0,
-            machine_id: report.machine_id.clone(),
-            pid: p.pid,
-            name: p.name.clone(),
-            exe_path: p.exe_path.clone(),
-            memory_mb: p.memory_mb,
-            cpu_percent: p.cpu_percent,
-            captured_at: report.collected_at.clone(),
-        })
-        .collect();
-
+    // Processos COM CPU
+    let processes: Vec<ProcessInfo> = report.processes.iter().map(|p| ProcessInfo {
+        id: 0,
+        machine_id: report.machine_id.clone(),
+        pid: p.pid,
+        name: p.name.clone(),
+        exe_path: p.exe_path.clone(),
+        memory_mb: p.memory_mb,
+        cpu_percent: p.cpu_percent, // AGORA TEM VALOR!
+        captured_at: report.collected_at.clone(),
+    }).collect();
     database::update_processes(&pool, &report.machine_id, &processes)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // 5. Busca políticas aplicáveis a esta máquina
-    let policies = database::list_policies(&pool, Some(&report.machine_id))
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    // Screen Time (NOVO)
+    for entry in &report.screen_time {
+        database::insert_screen_time(
+            &pool,
+            &report.machine_id,
+            &entry.app_name,
+            entry.total_seconds,
+            &entry.date,
+        ).ok();
+    }
 
-    // Log de auditoria
-    database::log_audit(
+    // Métricas
+    database::insert_metric(
         &pool,
-        "report_received",
-        "machine",
         &report.machine_id,
-        "agent",
-        &format!("Report v{} from {}", report.agent_version, report.hostname),
-    )
-    .ok();
+        report.hardware.cpu_usage_percent,
+        report.hardware.ram_used_mb as i64,
+        report.hardware.ram_total_mb as i64,
+    ).ok();
+
+    // Retorna políticas
+    let policies = database::list_policies(&pool, Some(&report.machine_id))
+        .unwrap_or_default();
 
     Ok(Json(ApiResponse {
         status: "ok".to_string(),
-        message: format!("Dados de '{}' processados com sucesso.", report.hostname),
+        message: format!("Dados de '{}' processados", report.hostname),
         policies,
     }))
 }

@@ -1,10 +1,6 @@
-// ============================================================
-// commands/processes.rs — Processos activos
-// ============================================================
-
 use tauri::State;
 use crate::database::{self, DbPool};
-use crate::models::*;
+use crate::models::ProcessInfo;
 
 #[tauri::command]
 pub async fn get_processes(

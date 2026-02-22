@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { Package, Shield, Ban } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface SoftwareEntry {
     name: string;
@@ -18,86 +20,101 @@ export default function SoftwareTab({ machineId }: Props) {
     const [search, setSearch] = useState("");
 
     useEffect(() => {
-        invoke<SoftwareEntry[]>("get_software", { machineId })
-            .then((data) => {
-                setSoftware(data);
-                setLoading(false);
-            })
-            .catch(console.error);
+        loadSoftware();
     }, [machineId]);
 
-    const filtered = software.filter(
-        (s) =>
-            s.name.toLowerCase().includes(search.toLowerCase()) ||
-            s.publisher.toLowerCase().includes(search.toLowerCase())
+    const loadSoftware = async () => {
+        try {
+            const result = await invoke<SoftwareEntry[]>("get_software", { machineId });
+            setSoftware(result);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const blockSoftware = async (sw: SoftwareEntry) => {
+        if (!confirm(`Bloquear ${sw.name}?`)) return;
+
+        try {
+            await invoke("block_software_for_machine", {
+                machineId,
+                softwareName: sw.name,
+                reason: "Bloqueado pelo administrador",
+            });
+            toast.success(`${sw.name} bloqueado com sucesso!`);
+        } catch (err) {
+            toast.error(`Erro: ${err}`);
+        }
+    };
+
+    const filtered = software.filter(sw =>
+        sw.name.toLowerCase().includes(search.toLowerCase())
     );
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-32 text-slate-400 text-sm">
-                Carregando software...
-            </div>
-        );
+        return <div className="animate-pulse text-gray-500">A carregar...</div>;
     }
 
     return (
-        <div>
-            {/* Barra de pesquisa */}
-            <div className="mb-4">
+        <div className="space-y-4">
+            {/* Search */}
+            <div className="flex items-center gap-4">
                 <input
                     type="text"
-                    placeholder={`Pesquisar entre ${software.length} softwares...`}
+                    placeholder="Pesquisar software..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5
-            text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    className="input flex-1"
                 />
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Package className="w-4 h-4" />
+                    <span>{filtered.length} aplicações</span>
+                </div>
             </div>
 
-            {/* Tabela de software */}
-            <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-                <table className="w-full">
+            {/* Table */}
+            <div className="glass rounded-xl overflow-hidden">
+                <table className="table">
                     <thead>
-                        <tr className="border-b border-slate-700">
-                            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">
-                                Nome
-                            </th>
-                            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">
-                                Versão
-                            </th>
-                            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">
-                                Fabricante
-                            </th>
-                            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">
-                                Instalado em
-                            </th>
+                        <tr>
+                            <th>Software</th>
+                            <th>Versão</th>
+                            <th>Publicador</th>
+                            <th>Instalado Em</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-700/50">
-                        {filtered.map((sw, i) => (
-                            <tr key={i} className="hover:bg-slate-700/30 transition-colors">
-                                <td className="px-4 py-2.5">
-                                    <span className="text-sm text-white">{sw.name}</span>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                    <span className="text-sm text-slate-400 font-mono">{sw.version || "—"}</span>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                    <span className="text-sm text-slate-400">{sw.publisher || "—"}</span>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                    <span className="text-sm text-slate-500">{sw.install_date || "—"}</span>
-                                </td>
-                            </tr>
-                        ))}
+                    <tbody>
+                        {filtered.length === 0 ? (
+                            <tr><td colSpan={5} className="text-center py-8 text-gray-500">Nenhum software encontrado</td></tr>
+                        ) : (
+                            filtered.map((sw, idx) => (
+                                <tr key={idx}>
+                                    <td>
+                                        <div className="flex items-center gap-3">
+                                            <Package className="w-4 h-4 text-matrix-green-500" />
+                                            <span className="font-medium text-white">{sw.name}</span>
+                                        </div>
+                                    </td>
+                                    <td className="text-gray-400">{sw.version || 'N/A'}</td>
+                                    <td className="text-gray-400">{sw.publisher || 'Desconhecido'}</td>
+                                    <td className="text-gray-400">{sw.install_date || 'N/A'}</td>
+                                    <td>
+                                        <button
+                                            onClick={() => blockSoftware(sw)}
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm"
+                                        >
+                                            <Ban className="w-4 h-4" />
+                                            Bloquear
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
-
-                {filtered.length === 0 && (
-                    <div className="text-center py-8 text-slate-400 text-sm">
-                        Nenhum software encontrado para "{search}"
-                    </div>
-                )}
             </div>
         </div>
     );
