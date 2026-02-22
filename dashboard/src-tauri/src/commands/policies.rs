@@ -1,6 +1,6 @@
-use tauri::State;
 use crate::database::{self, DbPool};
 use crate::models::*;
+use tauri::State;
 
 #[tauri::command]
 pub async fn create_policy(
@@ -19,8 +19,9 @@ pub async fn create_policy(
         &action,
         &reason,
         "admin",
-    ).map_err(|e| e.to_string())?;
-    
+    )
+    .map_err(|e| e.to_string())?;
+
     database::log_audit(
         &pool,
         "create_policy",
@@ -28,8 +29,9 @@ pub async fn create_policy(
         &id,
         "admin",
         &format!("{} {} for {}", action, policy_type, target),
-    ).ok();
-    
+    )
+    .ok();
+
     Ok(id)
 }
 
@@ -38,18 +40,13 @@ pub async fn list_policies(
     machine_id: Option<String>,
     pool: State<'_, DbPool>,
 ) -> Result<Vec<Policy>, String> {
-    database::list_policies(&pool, machine_id.as_deref())
-        .map_err(|e| e.to_string())
+    database::list_policies(&pool, machine_id.as_deref()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn delete_policy(
-    policy_id: String,
-    pool: State<'_, DbPool>,
-) -> Result<(), String> {
-    database::delete_policy(&pool, &policy_id)
-        .map_err(|e| e.to_string())?;
-    
+pub async fn delete_policy(policy_id: String, pool: State<'_, DbPool>) -> Result<(), String> {
+    database::delete_policy(&pool, &policy_id).map_err(|e| e.to_string())?;
+
     database::log_audit(
         &pool,
         "delete_policy",
@@ -57,7 +54,8 @@ pub async fn delete_policy(
         &policy_id,
         "admin",
         "Policy deleted",
-    ).ok();
-    
+    )
+    .ok();
+
     Ok(())
 }

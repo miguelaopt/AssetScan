@@ -1,49 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Id="*" 
-           Name="AssetScan Agent" 
-           Language="1033" 
-           Version="3.0.0.0" 
-           Manufacturer="AssetScan"
-           UpgradeCode="YOUR-GUID-HERE">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  
+  <Package Name="AssetScan Agent" Manufacturer="AssetScan" Version="3.0.0" UpgradeCode="A1B2C3D4-E5F6-4789-8A9B-CDEF01234567">
     
-    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
-    
-    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
     <MediaTemplate EmbedCab="yes" />
+    
+    <Property Id="SERVER_URL" Value="http://localhost:7474" />
+    <Property Id="API_KEY" Value="default_key" />
+    <Property Id="INTERVAL" Value="60" />
+    
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="AssetScan">
+        
+        <Component Id="AgentExe" Guid="98765432-10AB-CDEF-0123-456789ABCDEF">
+          <File Id="AgentExecutable" Source="..\agent\target\release\assetscan-agent.exe" KeyPath="yes" />
+                          
+          <RegistryKey Root="HKLM" Key="Software\AssetScan\Agent">
+             <RegistryValue Name="ServerUrl" Type="string" Value="[SERVER_URL]" />
+             <RegistryValue Name="ApiKey" Type="string" Value="[API_KEY]" />
+             <RegistryValue Name="IntervalMinutes" Type="integer" Value="[INTERVAL]" />
+          </RegistryKey>
 
-    <Feature Id="ProductFeature" Title="AssetScan Agent" Level="1">
-      <ComponentGroupRef Id="ProductComponents" />
+          <RegistryKey Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run">
+             <RegistryValue Name="AssetScanAgent" Type="string" Value="&quot;[#AgentExecutable]&quot;" />
+          </RegistryKey>
+        </Component>
+
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="AssetScan Agent" Level="1">
+      <ComponentRef Id="AgentExe" />
     </Feature>
     
-    <!-- UI -->
-    <UIRef Id="WixUI_Minimal" />
-    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
-    
-  </Product>
-
-  <Fragment>
-    <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFilesFolder">
-        <Directory Id="INSTALLFOLDER" Name="AssetScan Agent" />
-      </Directory>
-    </Directory>
-  </Fragment>
-
-  <Fragment>
-    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-      <Component Id="AgentExe" Guid="*">
-        <File Id="AssetscanAgentExe" Source="$(var.AgentPath)\assetscan-agent.exe" KeyPath="yes" />
-        <ServiceInstall
-          Id="AgentService"
-          Name="AssetScanAgent"
-          DisplayName="AssetScan Agent"
-          Description="Monitoring and security agent"
-          Start="auto"
-          Type="ownProcess"
-          ErrorControl="normal" />
-        <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="AssetScanAgent" Wait="yes" />
-      </Component>
-    </ComponentGroup>
-  </Fragment>
+  </Package>
 </Wix>

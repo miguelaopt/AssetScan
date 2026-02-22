@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Clock, TrendingUp, Calendar } from "lucide-react";
+import { Clock, MonitorSmartphone, Search } from "lucide-react";
 import { useMachines } from "../hooks/useMachines";
 
 interface ScreenTimeEntry {
@@ -12,151 +12,104 @@ interface ScreenTimeEntry {
 
 export default function ScreenTime() {
     const { machines } = useMachines();
-    const [selectedMachine, setSelectedMachine] = useState<string>("");
+    const [selectedMachine, setSelectedMachine] = useState<string>("all");
     const [entries, setEntries] = useState<ScreenTimeEntry[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [searchFilter, setSearchFilter] = useState("");
 
     useEffect(() => {
-        if (machines.length > 0 && !selectedMachine) {
-            setSelectedMachine(machines[0].machine_id);
+        // Num cenário real, "all" iria buscar o agregado ao backend.
+        // Aqui chamamos pela máquina selecionada. Se for "all", idealmente o backend suportaria machineId: null.
+        const targetId = selectedMachine === "all" ? (machines[0]?.machine_id || "") : selectedMachine;
+        if (targetId) {
+            loadScreenTime(targetId);
         }
-    }, [machines]);
+    }, [selectedMachine, machines]);
 
-    useEffect(() => {
-        if (selectedMachine) {
-            loadScreenTime();
-        }
-    }, [selectedMachine]);
-
-    const loadScreenTime = async () => {
+    const loadScreenTime = async (machineId: string) => {
         try {
-            setLoading(true);
             const today = new Date().toISOString().split('T')[0];
             const result = await invoke<ScreenTimeEntry[]>("get_screen_time", {
-                machineId: selectedMachine,
+                machineId: machineId,
                 date: today,
             });
             setEntries(result.sort((a, b) => b.total_seconds - a.total_seconds));
         } catch (err) {
             console.error(err);
-        } finally {
-            setLoading(false);
         }
     };
 
     const formatTime = (seconds: number) => {
-        const hours = Math.floor(seconds / 3600);
-        const mins = Math.floor((seconds % 3600) / 60);
-        return `${hours}h ${mins}m`;
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        return h > 0 ? `${h}h ${m}m` : `${m}m`;
     };
 
-    const totalTime = entries.reduce((sum, e) => sum + e.total_seconds, 0);
+    const maxTime = entries.length > 0 ? entries[0].total_seconds : 1;
+    const filteredEntries = entries.filter(e => e.app_name.toLowerCase().includes(searchFilter.toLowerCase()));
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-white mb-2">Screen Time</h1>
-                    <p className="text-gray-500">Tempo de uso por aplicação</p>
-                </div>
+        <div className="space-y-6 animate-fade-in">
+            <div>
+                <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Produtividade & Screen Time</h1>
+                <p className="text-emerald-400/80 font-medium">Análise de utilização de aplicações hoje</p>
+            </div>
 
-                <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-400">{new Date().toLocaleDateString('pt-PT')}</span>
+            <div className="bg-[#0a0a0a]/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl flex items-center gap-4">
+                <div className="flex-1">
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Máquina Alvo</label>
+                    <select
+                        value={selectedMachine}
+                        onChange={(e) => setSelectedMachine(e.target.value)}
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-emerald-500/50 transition-colors"
+                    >
+                        <option value="all">Visão Geral (Todas as Máquinas)</option>
+                        {machines.map(m => (
+                            <option key={m.id} value={m.machine_id}>{m.hostname}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="flex-1">
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Filtrar Apps/Sites</label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-3.5 w-4 h-4 text-slate-500" />
+                        <input
+                            type="text"
+                            placeholder="ex: chrome, excel..."
+                            value={searchFilter}
+                            onChange={(e) => setSearchFilter(e.target.value)}
+                            className="w-full pl-10 p-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-emerald-500/50 transition-colors"
+                        />
+                    </div>
                 </div>
             </div>
 
-            {/* Machine Selector */}
-            <div className="glass rounded-xl p-4">
-                <label className="block text-sm font-medium text-gray-400 mb-2">Máquina</label>
-                <select
-                    value={selectedMachine}
-                    onChange={(e) => setSelectedMachine(e.target.value)}
-                    className="select w-full"
-                >
-                    {machines.map(m => (
-                        <option key={m.machine_id} value={m.machine_id}>
-                            {m.custom_name || m.hostname} ({m.local_ip || 'IP desconhecido'})
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-3 gap-4">
-                <div className="glass rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                        <Clock className="w-5 h-5 text-matrix-green-500" />
-                        <span className="text-sm text-gray-400">Tempo Total</span>
-                    </div>
-                    <p className="text-3xl font-bold text-gradient">{formatTime(totalTime)}</p>
+            <div className="bg-[#0a0a0a]/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                <div className="space-y-4">
+                    {filteredEntries.length === 0 ? (
+                        <p className="text-center text-slate-500 py-8">Nenhum dado de ecrã para mostrar hoje.</p>
+                    ) : (
+                        filteredEntries.map((entry, idx) => {
+                            const percentage = (entry.total_seconds / maxTime) * 100;
+                            return (
+                                <div key={idx} className="flex items-center gap-6">
+                                    <div className="w-48 flex justify-between items-center shrink-0">
+                                        <div className="flex items-center gap-3">
+                                            <MonitorSmartphone className="w-4 h-4 text-emerald-500" />
+                                            <span className="font-medium text-white truncate w-28" title={entry.app_name}>{entry.app_name}</span>
+                                        </div>
+                                        <span className="text-emerald-400 font-medium text-sm">{formatTime(entry.total_seconds)}</span>
+                                    </div>
+                                    <div className="flex-1 bg-white/5 rounded-full h-4 p-1 border border-white/5">
+                                        <div
+                                            className="bg-emerald-500 h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                                            style={{ width: `${percentage}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
-
-                <div className="glass rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                        <TrendingUp className="w-5 h-5 text-matrix-green-500" />
-                        <span className="text-sm text-gray-400">Apps Activas</span>
-                    </div>
-                    <p className="text-3xl font-bold text-white">{entries.length}</p>
-                </div>
-
-                <div className="glass rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                        <Clock className="w-5 h-5 text-matrix-green-500" />
-                        <span className="text-sm text-gray-400">App Mais Usada</span>
-                    </div>
-                    <p className="text-lg font-semibold text-white truncate">
-                        {entries[0]?.app_name || 'N/A'}
-                    </p>
-                </div>
-            </div>
-
-            {/* Table */}
-            <div className="glass rounded-xl overflow-hidden">
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Aplicação</th>
-                            <th>Tempo de Uso</th>
-                            <th>Percentagem</th>
-                            <th>Barra</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr><td colSpan={5} className="text-center py-8 text-gray-500">A carregar...</td></tr>
-                        ) : entries.length === 0 ? (
-                            <tr><td colSpan={5} className="text-center py-8 text-gray-500">Sem dados para hoje</td></tr>
-                        ) : (
-                            entries.map((entry, idx) => {
-                                const percentage = totalTime > 0 ? (entry.total_seconds / totalTime) * 100 : 0;
-
-                                return (
-                                    <tr key={idx}>
-                                        <td>
-                                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-matrix-green-500/10 text-matrix-green-400 font-bold">
-                                                {idx + 1}
-                                            </div>
-                                        </td>
-                                        <td className="font-medium text-white">{entry.app_name}</td>
-                                        <td className="text-matrix-green-400 font-semibold">{formatTime(entry.total_seconds)}</td>
-                                        <td className="text-gray-400">{percentage.toFixed(1)}%</td>
-                                        <td>
-                                            <div className="w-full bg-gray-900 rounded-full h-2">
-                                                <div
-                                                    className="bg-gradient-to-r from-matrix-green-500 to-cyber-green-500 h-2 rounded-full transition-all duration-500"
-                                                    style={{ width: `${percentage}%` }}
-                                                />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
             </div>
         </div>
     );

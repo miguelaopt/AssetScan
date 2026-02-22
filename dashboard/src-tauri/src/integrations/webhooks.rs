@@ -1,8 +1,8 @@
-use serde::{Serialize, Deserialize};
-use reqwest::Client;
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
 use hex;
+use hmac::{Hmac, Mac};
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -20,7 +20,7 @@ pub async fn trigger_webhook(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new();
     let payload = serde_json::to_string(&event)?;
-    
+
     // Calcula signature se secret fornecido
     let signature = if let Some(secret_key) = secret {
         let mut mac = HmacSha256::new_from_slice(secret_key.as_bytes())?;
@@ -30,23 +30,23 @@ pub async fn trigger_webhook(
     } else {
         None
     };
-    
+
     let mut request = client
         .post(url)
         .header("Content-Type", "application/json")
         .header("X-AssetScan-Event", &event.event_type)
         .body(payload);
-    
+
     if let Some(sig) = signature {
         request = request.header("X-AssetScan-Signature", format!("sha256={}", sig));
     }
-    
+
     let response = request.send().await?;
-    
+
     if !response.status().is_success() {
         return Err(format!("Webhook failed: {}", response.status()).into());
     }
-    
+
     Ok(())
 }
 

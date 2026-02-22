@@ -1,36 +1,36 @@
-import { LayoutGrid, List, Columns } from "lucide-react";
+import { Grid3x3, List, Kanban } from "lucide-react";
 
 export type ViewMode = 'grid' | 'list' | 'kanban';
 
 interface Props {
-    value: ViewMode;
+    mode: ViewMode;
     onChange: (mode: ViewMode) => void;
 }
 
-export function ViewModeToggle({ value, onChange }: Props) {
-    const modes: { mode: ViewMode; icon: typeof LayoutGrid; label: string }[] = [
-        { mode: 'grid', icon: LayoutGrid, label: 'Grid' },
-        { mode: 'list', icon: List, label: 'Lista' },
-        { mode: 'kanban', icon: Columns, label: 'Kanban' },
+export default function ViewModeToggle({ mode, onChange }: Props) {
+    const modes = [
+        { value: 'grid' as ViewMode, icon: Grid3x3, label: 'Grade' },
+        { value: 'list' as ViewMode, icon: List, label: 'Lista' },
+        { value: 'kanban' as ViewMode, icon: Kanban, label: 'Kanban' },
     ];
 
     return (
-        <div className="glass rounded-lg p-1 inline-flex gap-1">
-            {modes.map(({ mode, icon: Icon, label }) => (
+        <div className="liquid-glass rounded-xl p-1 flex gap-1">
+            {modes.map(({ value, icon: Icon, label }) => (
                 <button
-                    key={mode}
-                    onClick={() => onChange(mode)}
+                    key={value}
+                    onClick={() => onChange(value)}
                     className={`
-            flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all
-            ${value === mode
-                            ? 'bg-gradient-to-r from-cyber-500 to-deep-blue-500 text-white shadow-lg shadow-cyber-500/20'
+            px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 ripple-container
+            ${mode === value
+                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }
           `}
                     title={label}
                 >
                     <Icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{label}</span>
+                    <span className="text-sm font-medium hidden sm:inline">{label}</span>
                 </button>
             ))}
         </div>

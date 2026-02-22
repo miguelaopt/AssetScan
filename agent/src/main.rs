@@ -7,6 +7,9 @@ mod notifications;
 mod screenshot;
 mod network_collector;
 mod screen_time_tracker;
+mod wmi_collector;
+mod hardware_collector; // NOVO!
+mod security_collector; // NOVO!
 
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -29,7 +32,9 @@ async fn main() -> Result<()> {
     tokio::spawn(screen_time_tracker::start_tracking());
 
     // Loop principal
-    let mut interval = time::interval(Duration::from_secs(config.interval_minutes * 60));
+    let interval_minutes = config.interval_minutes.min(30);
+    // ADICIONA ESTA LINHA:
+    let mut interval = time::interval(Duration::from_secs(interval_minutes * 60));
 
     loop {
         interval.tick().await;

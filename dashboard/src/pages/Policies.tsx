@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Power } from "lucide-react";
+import { Plus, Trash2, ShieldAlert } from "lucide-react";
 import { usePolicies } from "../hooks/usePolicies";
 import { useMachines } from "../hooks/useMachines";
 
@@ -7,9 +7,7 @@ export default function Policies() {
     const { policies, createPolicy, deletePolicy } = usePolicies();
     const { machines } = useMachines();
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({
-        policyType: "application", target: "", action: "block", reason: "", machineId: "all",
-    });
+    const [formData, setFormData] = useState({ policyType: "application", target: "", action: "block", reason: "", machineId: "all" });
 
     useEffect(() => { document.title = "Políticas - AssetScan"; }, []);
 
@@ -22,80 +20,71 @@ export default function Policies() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white mb-2">Políticas de Segurança</h1>
-                    <p className="text-slate-400">{policies.length} política(s) configurada(s)</p>
+                    <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Políticas de Segurança</h1>
+                    <p className="text-emerald-400/80 font-medium">{policies.length} política(s) ativa(s)</p>
                 </div>
-                <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    <Plus className="w-5 h-5" /><span>Nova Política</span>
+                <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-medium shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all cursor-pointer">
+                    <Plus className="w-5 h-5" /> Nova Política
                 </button>
             </div>
 
-            <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-slate-900 text-slate-300 text-sm">
+            <div className="bg-[#0a0a0a]/40 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                    <thead className="bg-black/40 text-slate-400 font-medium">
                         <tr>
-                            <th className="p-4">Tipo</th><th className="p-4">Alvo</th><th className="p-4">Máquina</th>
-                            <th className="p-4">Ação</th><th className="p-4 text-right">Ações</th>
+                            <th className="px-6 py-4">Alvo</th>
+                            <th className="px-6 py-4">Tipo</th>
+                            <th className="px-6 py-4">Ação</th>
+                            <th className="px-6 py-4">Máquina</th>
+                            <th className="px-6 py-4 text-right">Remover</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-700">
-                        {policies.map((policy) => (
-                            <tr key={policy.id} className="hover:bg-slate-700/50">
-                                <td className="p-4 text-sm text-slate-300 capitalize">{policy.policy_type}</td>
-                                <td className="p-4 text-sm text-white font-mono">{policy.target}</td>
-                                <td className="p-4 text-sm text-slate-400">{policy.machine_id ? policy.machine_id : "Todas (Global)"}</td>
-                                <td className="p-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs ${policy.action === "block" ? "bg-red-900/50 text-red-400" : "bg-green-900/50 text-green-400"}`}>
-                                        {policy.action}
-                                    </span>
-                                </td>
-                                <td className="p-4 text-right">
-                                    <button onClick={() => deletePolicy(policy.id)} className="p-2 text-red-400 hover:bg-red-900/50 rounded-lg">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                    <tbody className="divide-y divide-white/5">
+                        {policies.length === 0 ? (
+                            <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">Nenhuma política configurada.</td></tr>
+                        ) : (
+                            policies.map((p) => (
+                                <tr key={p.id} className="hover:bg-white/5 transition-colors">
+                                    <td className="px-6 py-4 font-medium text-white">{p.target}</td>
+                                    <td className="px-6 py-4 text-emerald-400">{p.policy_type}</td>
+                                    <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${p.action === 'block' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>{p.action.toUpperCase()}</span></td>
+                                    <td className="px-6 py-4 text-slate-400">{p.machine_id ? p.machine_id.substring(0, 8) + "..." : "Global"}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button onClick={() => deletePolicy(p.id)} className="p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
 
+            {/* Modal Glass */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold text-white mb-4">Nova Política</h2>
+                    <div className="bg-[#111318] border border-white/10 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                        <div className="flex items-center gap-3 mb-6">
+                            <ShieldAlert className="w-6 h-6 text-emerald-400" />
+                            <h2 className="text-xl font-bold text-white">Criar Política</h2>
+                        </div>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm text-slate-300 mb-1">Máquina Alvo</label>
-                                <select value={formData.machineId} onChange={(e) => setFormData({ ...formData, machineId: e.target.value })} className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white">
-                                    <option value="all">Todas as Máquinas</option>
+                                <select value={formData.machineId} onChange={(e) => setFormData({ ...formData, machineId: e.target.value })} className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none">
+                                    <option value="all">Global (Todas as Máquinas)</option>
                                     {machines.map(m => <option key={m.id} value={m.machine_id}>{m.hostname}</option>)}
                                 </select>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm text-slate-300 mb-1">Tipo</label>
-                                    <select value={formData.policyType} onChange={(e) => setFormData({ ...formData, policyType: e.target.value })} className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white">
-                                        <option value="application">Aplicação</option><option value="website">Website</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-300 mb-1">Ação</label>
-                                    <select value={formData.action} onChange={(e) => setFormData({ ...formData, action: e.target.value })} className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white">
-                                        <option value="block">Bloquear</option><option value="allow">Permitir</option>
-                                    </select>
-                                </div>
-                            </div>
                             <div>
-                                <label className="block text-sm text-slate-300 mb-1">Alvo</label>
-                                <input type="text" value={formData.target} onChange={(e) => setFormData({ ...formData, target: e.target.value })} placeholder="ex: chrome.exe" className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white" required />
+                                <label className="block text-sm text-slate-300 mb-1">Nome/Processo (ex: chrome.exe)</label>
+                                <input type="text" value={formData.target} onChange={(e) => setFormData({ ...formData, target: e.target.value })} required className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none" />
                             </div>
-                            <div className="flex gap-2 pt-4">
-                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 p-2 bg-slate-700 text-white rounded-lg">Cancelar</button>
-                                <button type="submit" className="flex-1 p-2 bg-blue-600 text-white rounded-lg">Criar</button>
+                            <div className="flex gap-4 pt-6">
+                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 p-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors">Cancelar</button>
+                                <button type="submit" className="flex-1 p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-colors font-medium">Aplicar</button>
                             </div>
                         </form>
                     </div>

@@ -1,18 +1,18 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod models;
-mod database;
-mod auth;
-mod server;
 mod aggregator;
-mod scheduler;
-mod vulnerability_scanner;
-mod email_sender;
 mod api;
+mod auth;
 mod commands;
 mod compliance;
+mod database;
+mod email_sender;
 mod integrations;
 mod intelligence;
+mod models;
+mod scheduler;
+mod server;
+mod vulnerability_scanner;
 
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
@@ -23,8 +23,7 @@ fn main() {
     println!("═══════════════════════════════════════════════════\n");
 
     // Abre database
-    let conn = database::open_database()
-        .expect("Falha ao abrir banco de dados");
+    let conn = database::open_database().expect("Falha ao abrir banco de dados");
 
     let pool: database::DbPool = Arc::new(Mutex::new(conn));
 
@@ -48,14 +47,13 @@ fn main() {
 
     // Inicia servidor HTTP + scheduler + aggregator em thread separada
     std::thread::spawn(move || {
-        let rt = tokio::runtime::Runtime::new()
-            .expect("Falha ao criar runtime Tokio");
-        
+        let rt = tokio::runtime::Runtime::new().expect("Falha ao criar runtime Tokio");
+
         // Inicia aggregator (métricas a cada 1 min)
         rt.spawn(async move {
             aggregator::start_metrics_aggregator(pool_agg).await;
         });
-        
+
         // Inicia scheduler (relatórios diários/semanais)
         rt.spawn(async move {
             scheduler::setup_report_scheduler(pool_sched).await;
@@ -79,25 +77,25 @@ fn main() {
             commands::rename_machine,
             commands::get_dashboard_stats,
             commands::compare_machines,
-            
+            commands::get_metrics_history,
             // Processes
             commands::get_processes,
-            
             // Policies
             commands::create_policy,
             commands::list_policies,
             commands::delete_policy,
-            
+            commands::get_hardware_details,
+            commands::get_network_details,
+            commands::get_security_status,
+            commands::kill_process_remote,
+            commands::block_software,
             // Audit
             commands::get_audit_logs,
-            
             // Vulnerabilities
             commands::get_vulnerabilities,
             commands::scan_vulnerabilities,
-            
             // Chatbot
             commands::chatbot_query,
-            
             // Screenshots
             commands::request_screenshot,
             commands::get_screen_time,

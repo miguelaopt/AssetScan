@@ -1,5 +1,5 @@
-use tauri::State;
 use crate::database::DbPool;
+use tauri::State;
 
 #[tauri::command]
 pub async fn request_screenshot(

@@ -29,39 +29,49 @@ export default function Audit() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
             <div>
-                <h1 className="text-2xl font-bold text-white mb-2">Logs de Auditoria</h1>
-                <p className="text-slate-400">{logs.length} entrada(s) recentes</p>
+                <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Logs de Auditoria</h1>
+                <p className="text-emerald-400/80 font-medium">{logs.length} entrada(s) recentes</p>
             </div>
 
-            <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-                <table className="w-full">
-                    <thead className="bg-slate-900">
-                        <tr>
-                            <th className="text-left p-4 text-sm font-semibold text-slate-300">Timestamp</th>
-                            <th className="text-left p-4 text-sm font-semibold text-slate-300">Ação</th>
-                            <th className="text-left p-4 text-sm font-semibold text-slate-300">Recurso</th>
-                            <th className="text-left p-4 text-sm font-semibold text-slate-300">Utilizador</th>
-                            <th className="text-left p-4 text-sm font-semibold text-slate-300">Detalhes</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-700">
-                        {logs.map((log) => (
-                            <tr key={log.id} className="hover:bg-slate-700/50">
-                                <td className="p-4 text-sm text-slate-400">
-                                    {new Date(log.timestamp).toLocaleString("pt-PT")}
-                                </td>
-                                <td className="p-4 text-sm text-white font-medium">{log.action}</td>
-                                <td className="p-4 text-xs text-slate-400">
-                                    {log.resource_type} / {log.resource_id.substring(0, 8)}...
-                                </td>
-                                <td className="p-4 text-sm text-slate-300">{log.user}</td>
-                                <td className="p-4 text-sm text-slate-400">{log.details}</td>
+            <div className="bg-[#0a0a0a]/40 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-black/40 text-slate-400">
+                            <tr>
+                                <th className="p-5 font-semibold">Data / Hora</th>
+                                <th className="p-5 font-semibold">Ação</th>
+                                <th className="p-5 font-semibold">Recurso</th>
+                                <th className="p-5 font-semibold">Utilizador</th>
+                                <th className="p-5 font-semibold">Detalhes</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {logs.length === 0 ? (
+                                <tr><td colSpan={5} className="p-8 text-center text-slate-500">Sem registos de auditoria.</td></tr>
+                            ) : (
+                                logs.map((log) => (
+                                    <tr key={log.id} className="hover:bg-white/5 transition-colors">
+                                        <td className="p-5 text-slate-400">
+                                            {new Date(log.timestamp).toLocaleString("pt-PT")}
+                                        </td>
+                                        <td className="p-5">
+                                            <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-emerald-400 font-medium">
+                                                {log.action}
+                                            </span>
+                                        </td>
+                                        <td className="p-5 text-xs text-slate-400 font-mono">
+                                            {log.resource_type} / {log.resource_id.substring(0, 8)}...
+                                        </td>
+                                        <td className="p-5 text-white font-medium">{log.user}</td>
+                                        <td className="p-5 text-slate-400 max-w-xs truncate">{log.details}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

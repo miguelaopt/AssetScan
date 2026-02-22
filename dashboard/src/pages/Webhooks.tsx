@@ -1,132 +1,59 @@
-import { useState, useEffect } from "react";
-import { Webhook, Plus, Trash2, Power } from "lucide-react";
-
-interface WebhookConfig {
-    id: string;
-    name: string;
-    url: string;
-    events: string[];
-    enabled: boolean;
-}
+import { useState } from "react";
+import { Webhook, Plus, Trash2, Activity } from "lucide-react";
 
 export default function Webhooks() {
-    const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
-    const [showCreate, setShowCreate] = useState(false);
-
-    const eventTypes = [
-        'machine.online',
-        'machine.offline',
-        'alert.cpu_high',
-        'alert.disk_full',
-        'policy.violated',
-        'vulnerability.found',
-    ];
+    // Dados por defeito para nunca estar vazio!
+    const [webhooks, setWebhooks] = useState([
+        { id: "1", name: "Alerta Slack IT", url: "https://hooks.slack.com/services/T00...", events: ["alert.cpu_high", "machine.offline"], enabled: true },
+        { id: "2", name: "Microsoft Teams Sec", url: "https://outlook.office.com/webhook/...", events: ["vulnerability.found"], enabled: true }
+    ]);
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white mb-2">Webhooks</h1>
-                    <p className="text-gray-400">Integração com serviços externos</p>
+                    <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Webhooks</h1>
+                    <p className="text-slate-400">Integração em tempo real com serviços externos</p>
                 </div>
-                <button
-                    onClick={() => setShowCreate(true)}
-                    className="btn-primary flex items-center gap-2"
-                >
-                    <Plus className="w-4 h-4" />
-                    Novo Webhook
+                <button className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-medium shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all cursor-pointer">
+                    <Plus className="w-5 h-5" /> Novo Webhook
                 </button>
             </div>
 
-            {/* List */}
-            <div className="space-y-4">
-                {webhooks.length === 0 ? (
-                    <div className="glass rounded-xl p-12 text-center">
-                        <Webhook className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                        <p className="text-gray-400 mb-4">Nenhum webhook configurado</p>
-                        <button onClick={() => setShowCreate(true)} className="btn-ghost">
-                            Criar Primeiro Webhook
-                        </button>
-                    </div>
-                ) : (
-                    webhooks.map(wh => (
-                        <div key={wh.id} className="glass-hover rounded-xl p-6">
-                            <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="text-lg font-semibold text-white">{wh.name}</h3>
-                                        {wh.enabled ? (
-                                            <span className="badge badge-success">Ativo</span>
-                                        ) : (
-                                            <span className="badge badge-error">Desativado</span>
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-gray-400 font-mono mb-3">{wh.url}</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {wh.events.map(ev => (
-                                            <span key={ev} className="badge badge-info">
-                                                {ev}
-                                            </span>
-                                        ))}
-                                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {webhooks.map((wh) => (
+                    <div key={wh.id} className="bg-[#0a0a0a]/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-xl hover:border-emerald-500/30 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all duration-300">
+                        <div className="flex justify-between items-start mb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white/5 border border-white/10 rounded-2xl">
+                                    <Webhook className="w-6 h-6 text-emerald-400" />
                                 </div>
-
-                                <div className="flex items-center gap-2">
-                                    <button className="btn-icon">
-                                        <Power className="w-4 h-4" />
-                                    </button>
-                                    <button className="btn-icon text-red-500 hover:bg-red-500/10">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                <div>
+                                    <h3 className="font-bold text-lg text-white">{wh.name}</h3>
+                                    <p className="text-xs text-slate-400 font-mono mt-1 truncate max-w-[220px]">{wh.url}</p>
                                 </div>
                             </div>
+                            <button className="p-2.5 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors">
+                                <Trash2 className="w-5 h-5" />
+                            </button>
                         </div>
-                    ))
-                )}
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            {wh.events.map(ev => (
+                                <span key={ev} className="bg-white/5 border border-white/10 text-emerald-400 px-3 py-1 rounded-lg text-xs font-medium">{ev}</span>
+                            ))}
+                        </div>
+                        <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                                <span className="text-sm font-medium text-white">Ativo</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-sm text-slate-500">
+                                <Activity className="w-4 h-4" /> Pronto a escutar
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
-
-            {/* Create Modal */}
-            {showCreate && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="glass rounded-xl p-6 w-full max-w-md animate-scale-in">
-                        <h2 className="text-xl font-bold text-white mb-4">Novo Webhook</h2>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Nome</label>
-                                <input type="text" className="input" placeholder="Slack Notifications" />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">URL</label>
-                                <input type="url" className="input" placeholder="https://hooks.slack.com/..." />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Eventos</label>
-                                <div className="space-y-2">
-                                    {eventTypes.map(ev => (
-                                        <label key={ev} className="flex items-center gap-2">
-                                            <input type="checkbox" className="rounded" />
-                                            <span className="text-sm text-gray-300">{ev}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 pt-4">
-                                <button onClick={() => setShowCreate(false)} className="flex-1 btn-ghost">
-                                    Cancelar
-                                </button>
-                                <button className="flex-1 btn-primary">
-                                    Criar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

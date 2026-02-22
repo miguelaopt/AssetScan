@@ -11,10 +11,15 @@ import ScreenTime from "./pages/ScreenTime";
 import Policies from "./pages/Policies";
 import Vulnerabilities from "./pages/Vulnerabilities";
 import Audit from "./pages/Audit";
+import Compliance from "./pages/Compliance";
+import Webhooks from "./pages/Webhooks";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile"; // Adiciona no topo
+import SecurityCenter from "./pages/SecurityCenter";
 
 export default function App() {
     return (
+     <BrowserRouter>
         <ThemeProvider>
                 <ToastProvider />
                 <div className="flex h-screen bg-black">
@@ -31,10 +36,15 @@ export default function App() {
                                 <Route path="/vulnerabilities" element={<Vulnerabilities />} />
                                 <Route path="/audit" element={<Audit />} />
                                 <Route path="/settings" element={<Settings />} />
+                                <Route path="/profile" element={<Profile />} />
+                                <Route path="/compliance" element={<Compliance />} />
+                                <Route path="/webhooks" element={<Webhooks />} />
+                                <Route path="/security" element={<SecurityCenter />} />
                             </Routes>
                         </main>
                     </div>
                 </div>
-        </ThemeProvider>
+            </ThemeProvider>
+        </BrowserRouter>
     );
 }

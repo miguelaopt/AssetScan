@@ -1,22 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Cpu, Activity, LayoutGrid, Server, Globe } from "lucide-react";
 import { useMachines } from "../hooks/useMachines";
 
-// IMPORTANTE: Importação correta dos componentes a partir da pasta "components"
 import HardwareTab from "../components/HardwareTab";
 import SoftwareTab from "../components/SoftwareTab";
+import NetworkTab from "../components/NetworkTab"; // NOVA ABA
 
-interface ProcessInfo {
-    id: number;
-    pid: number;
-    name: string;
-    exe_path: string;
-    memory_mb: number;
-    cpu_percent: number;
-    captured_at: string;
-}
+interface ProcessInfo { id: number; pid: number; name: string; exe_path: string; memory_mb: number; cpu_percent: number; }
 
 export default function MachineDetail() {
     const { id } = useParams();
@@ -24,7 +16,7 @@ export default function MachineDetail() {
     const { machines } = useMachines();
 
     const [processes, setProcesses] = useState<ProcessInfo[]>([]);
-    const [tab, setTab] = useState<"hardware" | "software" | "processes">("hardware");
+    const [tab, setTab] = useState<"hardware" | "software" | "processes" | "network">("hardware");
 
     const machine = machines.find((m) => m.machine_id === id || m.id === id);
 
@@ -38,73 +30,90 @@ export default function MachineDetail() {
     const loadProcesses = async (machineId: string) => {
         try {
             const result = await invoke<ProcessInfo[]>("get_processes", { machineId });
-            setProcesses(result);
-        } catch (err) {
-            console.error("Error loading processes:", err);
-        }
+            setProcesses(result.sort((a, b) => b.cpu_percent - a.cpu_percent));
+        } catch (err) { console.error(err); }
     };
 
-    if (!machine) return <div className="text-slate-400">Máquina não encontrada</div>;
+    if (!machine) return <div className="text-emerald-500/70 p-8">Máquina não encontrada...</div>;
+    const actualId = machine.machine_id || machine.id;
 
     return (
-        <div className="space-y-6">
-            <button onClick={() => navigate("/machines")} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
-                <ArrowLeft className="w-5 h-5" /> Voltar
+        <div className="space-y-6 animate-fade-in">
+            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+                <ArrowLeft className="w-4 h-4" /> Voltar à lista
             </button>
 
-            <h1 className="text-2xl font-bold text-white">{machine.custom_name || machine.hostname}</h1>
-
-            <div className="flex gap-2 border-b border-slate-700">
-                {["hardware", "software", "processes"].map((t) => (
-                    <button
-                        key={t}
-                        onClick={() => setTab(t as any)}
-                        className={`px-4 py-2 capitalize transition-colors ${tab === t ? "border-b-2 border-blue-500 text-white" : "text-slate-400 hover:text-slate-200"}`}
-                    >
-                        {t === "hardware" ? "🖥️ Hardware" : t === "software" ? "📦 Software" : "⚡ Processos"}
-                    </button>
-                ))}
+            <div className="bg-[#0a0a0a]/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl flex items-center justify-between">
+                <div className="flex items-center gap-5">
+                    <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                        <Server className="w-10 h-10 text-emerald-400" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-white tracking-tight">{machine.custom_name || machine.hostname}</h1>
+                        <p className="text-emerald-400/80 font-medium">{machine.os_name} • {machine.os_version}</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border ${machine.is_online ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                        <span className={`w-2 h-2 rounded-full ${machine.is_online ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-rose-500'}`} />
+                        {machine.is_online ? "Online" : "Offline"}
+                    </span>
+                    <p className="text-sm text-slate-400 mt-2">ID: {actualId.substring(0, 8)}</p>
+                </div>
             </div>
 
-            {/* Renderizar as abas usando os SEUS componentes! */}
-            {tab === "hardware" && (
-                <HardwareTab machine={machine} />
-            )}
+            {/* Abas Liquid Glass */}
+            <div className="flex gap-2 border-b border-white/10 pb-px overflow-x-auto">
+                <button onClick={() => setTab("hardware")} className={`px-6 py-3 font-medium transition-all rounded-t-xl flex items-center gap-2 whitespace-nowrap ${tab === 'hardware' ? 'bg-white/5 border-t border-l border-r border-white/10 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                    <Cpu className="w-4 h-4" /> Hardware
+                </button>
+                <button onClick={() => setTab("network")} className={`px-6 py-3 font-medium transition-all rounded-t-xl flex items-center gap-2 whitespace-nowrap ${tab === 'network' ? 'bg-white/5 border-t border-l border-r border-white/10 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                    <Globe className="w-4 h-4" /> Rede & Segurança
+                </button>
+                <button onClick={() => setTab("software")} className={`px-6 py-3 font-medium transition-all rounded-t-xl flex items-center gap-2 whitespace-nowrap ${tab === 'software' ? 'bg-white/5 border-t border-l border-r border-white/10 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                    <LayoutGrid className="w-4 h-4" /> Software
+                </button>
+                <button onClick={() => setTab("processes")} className={`px-6 py-3 font-medium transition-all rounded-t-xl flex items-center gap-2 whitespace-nowrap ${tab === 'processes' ? 'bg-white/5 border-t border-l border-r border-white/10 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                    <Activity className="w-4 h-4" /> Processos
+                </button>
+            </div>
 
-            {tab === "software" && (
-                <SoftwareTab machineId={machine.machine_id} />
-            )}
-
+            {/* Conteúdo das Abas */}
+            {tab === "hardware" && <HardwareTab machine={machine} />}
+            {tab === "network" && <NetworkTab machine={machine} />}
+            {tab === "software" && <SoftwareTab machineId={actualId} />}
             {tab === "processes" && (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-slate-900">
-                            <tr>
-                                <th className="text-left p-4 text-sm font-semibold text-slate-300">PID</th>
-                                <th className="text-left p-4 text-sm font-semibold text-slate-300">Nome</th>
-                                <th className="text-left p-4 text-sm font-semibold text-slate-300">Caminho</th>
-                                <th className="text-right p-4 text-sm font-semibold text-slate-300">RAM (MB)</th>
-                                <th className="text-right p-4 text-sm font-semibold text-slate-300">CPU %</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-700">
-                            {processes.length > 0 ? processes.slice(0, 50).map((proc) => (
-                                <tr key={proc.id} className="hover:bg-slate-700/50">
-                                    <td className="p-4 text-sm text-slate-400">{proc.pid}</td>
-                                    <td className="p-4 text-sm text-white font-medium">{proc.name}</td>
-                                    <td className="p-4 text-xs text-slate-500 font-mono truncate max-w-xs">{proc.exe_path}</td>
-                                    <td className="p-4 text-sm text-slate-300 text-right">{proc.memory_mb.toFixed(1)}</td>
-                                    <td className="p-4 text-sm text-slate-300 text-right">{proc.cpu_percent.toFixed(1)}</td>
-                                </tr>
-                            )) : (
+                <div className="bg-[#0a0a0a]/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl mt-6">
+                    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/5">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-black/40 text-slate-400 font-medium">
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-slate-500">
-                                        Nenhum processo recebido ainda.
-                                    </td>
+                                    <th className="px-6 py-4">PID</th>
+                                    <th className="px-6 py-4">Processo</th>
+                                    <th className="px-6 py-4">Caminho</th>
+                                    <th className="px-6 py-4 text-right">RAM (MB)</th>
+                                    <th className="px-6 py-4 text-right">CPU %</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {processes.length > 0 ? processes.slice(0, 50).map((proc) => (
+                                    <tr key={proc.id} className="hover:bg-white/5 transition-colors">
+                                        <td className="px-6 py-4 text-slate-500 font-mono">{proc.pid}</td>
+                                        <td className="px-6 py-4 font-medium text-white">{proc.name}</td>
+                                        <td className="px-6 py-4 text-xs text-slate-500 font-mono truncate max-w-xs">{proc.exe_path}</td>
+                                        <td className="px-6 py-4 text-slate-300 text-right">{proc.memory_mb.toFixed(1)}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <span className={`font-semibold ${proc.cpu_percent > 20 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                                {proc.cpu_percent.toFixed(1)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">Nenhum processo recebido ainda.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

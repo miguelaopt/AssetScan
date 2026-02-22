@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import {
     LayoutDashboard, MonitorSmartphone, Clock, ShieldAlert,
-    Lock, Scale, Webhook, FileText, Settings, ChevronRight
+    Lock, Scale, Webhook, FileText, Settings, ChevronRight, ShieldCheck
 } from "lucide-react";
 import { useState } from "react";
 
@@ -19,6 +19,7 @@ export default function Sidebar() {
         { to: "/webhooks", icon: Webhook, label: "Webhooks", badge: null },
         { to: "/audit", icon: FileText, label: "Auditoria", badge: null },
         { to: "/settings", icon: Settings, label: "Configurações", badge: null },
+        { to: "/security", icon: ShieldCheck, label: "Security Center", badge: null },
     ];
 
     return (

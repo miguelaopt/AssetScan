@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use chrono::{Utc, Duration as ChronoDuration};
+use chrono::Utc;
 use serde::{Serialize, Deserialize};
 use sysinfo::{System, ProcessesToUpdate};
 use tokio::time::{interval, Duration};
@@ -23,7 +23,8 @@ pub async fn start_tracking() {
     loop {
         ticker.tick().await;
         
-        sys.refresh_processes(ProcessesToUpdate::All, true);
+        // CORREÇÃO: Removido o argumento `true`
+        sys.refresh_processes(ProcessesToUpdate::All);
         
         // Detecta processos activos
         let active_processes: Vec<String> = sys.processes()
@@ -48,7 +49,8 @@ pub fn get_daily_stats() -> Vec<ScreenTimeEntry> {
     let today = Utc::now().format("%Y-%m-%d").to_string();
     
     data.iter()
-        .map(|(app, seconds)| ScreenTimeEntry {
+        // CORREÇÃO: Declarado explicitamente o tipo (&String, &u64)
+        .map(|(app, seconds): (&String, &u64)| ScreenTimeEntry {
             app_name: app.clone(),
             total_seconds: *seconds,
             date: today.clone(),
@@ -63,16 +65,16 @@ fn is_relevant_app(name: &str) -> bool {
     let relevant = [
         "chrome", "firefox", "edge", "brave", "opera",
         "code", "visual studio", "sublime", "notepad++",
-        "word", "excel", "powerpoint", "outlook",
-        "slack", "teams", "discord", "zoom",
-        "spotify", "vlc", "photoshop", "illustrator",
-        "steam", "epic", "minecraft",
+        "word", "excel", "powerpoint", "outlook", "teams", "slack", "discord", "zoom",
+        "obs", "spotify", "photoshop", "illustrator", "premiere", "aftereffects"
     ];
     
-    relevant.iter().any(|&r| name_lower.contains(r))
+    relevant.iter().any(|&app| name_lower.contains(app))
 }
 
 fn clean_process_name(name: String) -> String {
-    name.trim_end_matches(".exe")
-        .to_string()
+    name.replace(".exe", "")
+        .replace(".bin", "")
+        .replace(".app", "")
+        .to_uppercase()
 }

@@ -1,8 +1,8 @@
 use axum::{
-    extract::{State, Query},
+    extract::{Query, State},
+    http::StatusCode,
     routing::{get, post},
     Json, Router,
-    http::StatusCode,
 };
 use serde::{Deserialize, Serialize};
 
@@ -42,10 +42,15 @@ pub async fn list_machines(
     let page = params.page.unwrap_or(1);
     let limit = params.limit.unwrap_or(50).min(100);
     let _offset = (page - 1) * limit;
-    
+
     // Simplificado: usamos o list_machines_filtered que criámos no database.rs
     let filter = params.filter.unwrap_or(MachineFilters {
-        os: None, status: None, tags: None, min_ram: None, max_ram: None, search_term: None,
+        os: None,
+        status: None,
+        tags: None,
+        min_ram: None,
+        max_ram: None,
+        search_term: None,
     });
 
     match database::list_machines_filtered(&pool, filter) {
@@ -70,5 +75,5 @@ pub fn create_api_router() -> Router<DbPool> {
     Router::new()
         // Define o endpoint RESTful para as máquinas
         .route("/api/v3/machines", get(list_machines))
-        // Podes depois adicionar aqui .post, .patch, .delete, etc.
+    // Podes depois adicionar aqui .post, .patch, .delete, etc.
 }

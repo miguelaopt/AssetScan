@@ -11,11 +11,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Machine {
     pub id: String,
-    pub machine_id: String,           // UUID do agente
+    pub machine_id: String,
     pub hostname: String,
-    pub custom_name: Option<String>,  // NOVO: nome customizável
-    pub tags: Vec<String>,            // NOVO: tags
-    pub notes: Option<String>,        // NOVO: notas do admin
+    pub custom_name: Option<String>,
+    pub tags: Vec<String>,
+    pub notes: Option<String>,
     pub last_seen: String,
     pub cpu_name: String,
     pub cpu_cores: i64,
@@ -26,8 +26,65 @@ pub struct Machine {
     pub uptime_hours: i64,
     pub disk_count: i64,
     pub software_count: i64,
-    pub process_count: i64,           // NOVO
-    pub is_online: bool,              // NOVO: online se last_seen < 2h
+    pub process_count: i64,
+    pub is_online: bool,
+    pub local_ip: Option<String>,
+    pub mac_address: Option<String>,
+    pub serial_number: Option<String>,
+    pub motherboard_model: Option<String>,
+    pub gpu_name: Option<String>,
+    pub is_bitlocker_active: Option<bool>,
+    pub domain_name: Option<String>,
+    pub current_user: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MachineExtended {
+    #[serde(flatten)]
+    pub machine: Machine,
+    pub hardware_details: Option<HardwareDetails>,
+    pub network_details: Option<NetworkDetails>,
+    pub security_status: Option<SecurityStatus>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HardwareDetails {
+    pub serial_number: String,
+    pub motherboard_manufacturer: String,
+    pub motherboard_model: String,
+    pub bios_version: String,
+    pub gpu_name: String,
+    pub gpu_vram_mb: i64,
+    pub total_ram_slots: i64,
+    pub used_ram_slots: i64,
+    pub ram_type: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkDetails {
+    pub local_ip: String,
+    pub subnet_mask: String,
+    pub gateway: String,
+    pub dns_primary: String,
+    pub dns_secondary: Option<String>,
+    pub dhcp_enabled: bool,
+    pub domain_name: String,
+    pub is_domain_joined: bool,
+    pub mac_address: String,
+    pub adapter_name: String,
+    pub connection_speed_mbps: i64,
+    pub wifi_ssid: Option<String>,
+    pub wifi_security: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityStatus {
+    pub windows_defender_enabled: bool,
+    pub windows_defender_updated: bool,
+    pub firewall_enabled: bool,
+    pub bitlocker_active: bool,
+    pub bitlocker_drives: Vec<String>,
+    pub last_windows_update: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -70,7 +127,7 @@ pub struct ProcessInfo {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Policy {
     pub id: String,
-    pub machine_id: Option<String>,   // null = aplica-se a todas
+    pub machine_id: Option<String>, // null = aplica-se a todas
     pub policy_type: PolicyType,
     pub target: String,
     pub action: PolicyAction,

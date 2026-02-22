@@ -8,29 +8,34 @@ pub struct AnomalyDetector {
 impl AnomalyDetector {
     pub fn new() -> Self {
         Self {
-            cpu_threshold: 90.0,  // 90% CPU
-            ram_threshold: 85.0,   // 85% RAM
+            cpu_threshold: 90.0, // 90% CPU
+            ram_threshold: 85.0, // 85% RAM
         }
     }
-    
+
     pub fn detect_anomalies(&self, machine: &Machine) -> Vec<Anomaly> {
         let mut anomalies = Vec::new();
-        
+
         // Verifica uso de RAM
         if machine.ram_total_mb > 0 {
             let ram_percent = (machine.ram_used_mb as f32 / machine.ram_total_mb as f32) * 100.0;
-            
+
             if ram_percent > self.ram_threshold {
                 anomalies.push(Anomaly {
                     anomaly_type: AnomalyType::HighRAMUsage,
                     machine_id: machine.machine_id.clone(),
-                    severity: if ram_percent > 95.0 { "critical" } else { "warning" }.to_string(),
+                    severity: if ram_percent > 95.0 {
+                        "critical"
+                    } else {
+                        "warning"
+                    }
+                    .to_string(),
                     description: format!("RAM usage at {:.1}%", ram_percent),
                     detected_at: chrono::Utc::now().to_rfc3339(),
                 });
             }
         }
-        
+
         // Verifica uptime anormal (>30 dias sem reiniciar)
         if machine.uptime_hours > 720 {
             anomalies.push(Anomaly {
@@ -41,7 +46,7 @@ impl AnomalyDetector {
                 detected_at: chrono::Utc::now().to_rfc3339(),
             });
         }
-        
+
         anomalies
     }
 }

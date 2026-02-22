@@ -3,10 +3,10 @@
 // ============================================================
 
 use anyhow::{Context, Result};
-use rusqlite::{Connection, params};
-use sha2::{Sha256, Digest};
 use hex;
 use rand::Rng;
+use rusqlite::{params, Connection};
+use sha2::{Digest, Sha256};
 
 use crate::database::DbPool;
 
@@ -65,19 +65,20 @@ pub fn validate_api_key(pool: &DbPool, key: &str) -> Result<bool> {
 pub fn list_api_keys(pool: &DbPool) -> Result<Vec<ApiKeyInfo>> {
     let conn = pool.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT id, name, created_at, last_used, enabled FROM api_keys ORDER BY created_at DESC"
+        "SELECT id, name, created_at, last_used, enabled FROM api_keys ORDER BY created_at DESC",
     )?;
 
-    let keys = stmt.query_map([], |row| {
-        Ok(ApiKeyInfo {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            created_at: row.get(2)?,
-            last_used: row.get(3)?,
-            enabled: row.get::<_, i32>(4)? != 0,
-        })
-    })?
-    .collect::<rusqlite::Result<Vec<ApiKeyInfo>>>()?;
+    let keys = stmt
+        .query_map([], |row| {
+            Ok(ApiKeyInfo {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                created_at: row.get(2)?,
+                last_used: row.get(3)?,
+                enabled: row.get::<_, i32>(4)? != 0,
+            })
+        })?
+        .collect::<rusqlite::Result<Vec<ApiKeyInfo>>>()?;
 
     Ok(keys)
 }

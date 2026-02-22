@@ -1,7 +1,7 @@
-use tauri::State;
 use crate::database::DbPool;
 use crate::models::Vulnerability;
 use rusqlite::Row;
+use tauri::State;
 
 // Função helper para mapear rows
 fn map_vulnerability_row(row: &Row) -> rusqlite::Result<Vulnerability> {
@@ -26,35 +26,35 @@ pub async fn get_vulnerabilities(
     pool: State<'_, DbPool>,
 ) -> Result<Vec<Vulnerability>, String> {
     let conn = pool.lock().unwrap();
-    
+
     // Constrói query dinamicamente
     let mut query = "SELECT * FROM vulnerabilities WHERE 1=1".to_string();
     let mut params: Vec<String> = Vec::new();
-    
+
     if machine_id.is_some() {
         query.push_str(" AND machine_id = ?");
         params.push(machine_id.unwrap());
     }
-    
+
     if severity.is_some() {
         query.push_str(" AND severity = ?");
         params.push(severity.unwrap());
     }
-    
+
     query.push_str(" ORDER BY published_date DESC");
-    
+
     let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
-    
+
     // Converte Vec<String> para Vec<&dyn ToSql>
-    let params_refs: Vec<&dyn rusqlite::ToSql> = params.iter()
-        .map(|s| s as &dyn rusqlite::ToSql)
-        .collect();
-    
-    let vulns = stmt.query_map(&params_refs[..], map_vulnerability_row)
+    let params_refs: Vec<&dyn rusqlite::ToSql> =
+        params.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
+
+    let vulns = stmt
+        .query_map(&params_refs[..], map_vulnerability_row)
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
-    
+
     Ok(vulns)
 }
 

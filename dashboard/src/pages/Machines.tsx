@@ -1,157 +1,177 @@
-import { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { Monitor, Cpu, HardDrive } from "lucide-react";
-import { useMachines, Machine } from "../hooks/useMachines";
-import { ViewModeToggle, ViewMode } from "../components/ViewModeToggle";
-import { AdvancedFilter, FilterOptions } from "../components/AdvancedFilter";
+import { useState } from "react";
+import { FileDown, Plus, Search } from "lucide-react";
+import { useMachines } from "../hooks/useMachines";
 import { exportMachinesPDF } from "../utils/exportPDF";
-import { FileDown } from "lucide-react";
+import MachineCard from "../components/MachineCard";
+import ViewModeToggle, { ViewMode } from "../components/ViewModeToggle";
+import AdvancedFilter from "../components/AdvancedFilter";
 
 export default function Machines() {
     const { machines, loading } = useMachines();
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
-    const [filters, setFilters] = useState<FilterOptions>({ searchTerm: '', status: 'all', os: 'all' });
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
 
-    useEffect(() => {
-        document.title = "Máquinas - AssetScan";
-    }, []);
+    const filtered = machines.filter(m => {
+        const matchesSearch = m.hostname.toLowerCase().includes(search.toLowerCase()) ||
+            (m.custom_name || '').toLowerCase().includes(search.toLowerCase());
+        const matchesStatus = statusFilter === 'all' ? true :
+            statusFilter === 'online' ? m.is_online : !m.is_online;
+        return matchesSearch && matchesStatus;
+    });
 
-    // Aplica os filtros
-    const filteredMachines = useMemo(() => {
-        return machines.filter(m => {
-            const nameToSearch = (m.custom_name || m.hostname).toLowerCase();
-            const matchesSearch = nameToSearch.includes(filters.searchTerm.toLowerCase());
-            const matchesStatus = filters.status === 'all' || (filters.status === 'online' ? m.is_online : !m.is_online);
-            const matchesOs = filters.os === 'all' || m.os_name.toLowerCase().includes(filters.os.toLowerCase());
-
-            return matchesSearch && matchesStatus && matchesOs;
-        });
-    }, [machines, filters]);
-
-    if (loading) return <div className="text-slate-400">A carregar...</div>;
-
-    // Repara que agora aceitamos "items: Machine[]" como argumento
-    const renderGrid = (items: Machine[]) => (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((machine) => (
-                <Link key={machine.id} to={`/machines/${machine.machine_id}`} className="block">
-                    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-blue-500 transition-colors">
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-slate-700 rounded-lg">
-                                    <Monitor className="w-5 h-5 text-blue-500" />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-white">{machine.custom_name || machine.hostname}</h3>
-                                    <p className="text-sm text-slate-400">{machine.os_name}</p>
-                                </div>
-                            </div>
-                            <span className={`w-2 h-2 rounded-full ${machine.is_online ? "bg-green-500" : "bg-slate-500"}`} />
-                        </div>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex items-center gap-2 text-slate-400">
-                                <Cpu className="w-4 h-4" /><span>{machine.cpu_cores} núcleos</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-slate-400">
-                                <HardDrive className="w-4 h-4" /><span>{(machine.ram_total_mb / 1024).toFixed(0)} GB RAM</span>
-                            </div>
-                        </div>
-                    </div>
-                </Link>
-            ))}
-        </div>
-    );
-
-    const renderList = (items: Machine[]) => (
-        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-            <table className="w-full text-left">
-                <thead className="bg-slate-900 text-slate-400 text-sm">
-                    <tr>
-                        <th className="p-4 font-semibold">Máquina</th>
-                        <th className="p-4 font-semibold">Estado</th>
-                        <th className="p-4 font-semibold">OS</th>
-                        <th className="p-4 font-semibold text-right">CPU Cores</th>
-                        <th className="p-4 font-semibold text-right">RAM (GB)</th>
-                        <th className="p-4 font-semibold">IP Local</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700">
-                    {items.map(m => (
-                        <tr key={m.id} className="hover:bg-slate-700/50 transition-colors">
-                            <td className="p-4">
-                                <Link to={`/machines/${m.machine_id}`} className="font-medium text-white hover:text-blue-400">
-                                    {m.custom_name || m.hostname}
-                                </Link>
-                            </td>
-                            <td className="p-4">
-                                <span className={`px-2 py-1 rounded-full text-xs ${m.is_online ? 'bg-green-500/10 text-green-500' : 'bg-slate-500/10 text-slate-400'}`}>
-                                    {m.is_online ? 'Online' : 'Offline'}
-                                </span>
-                            </td>
-                            <td className="p-4 text-slate-300 text-sm">{m.os_name}</td>
-                            <td className="p-4 text-slate-300 text-sm text-right">{m.cpu_cores}</td>
-                            <td className="p-4 text-slate-300 text-sm text-right">{(m.ram_total_mb / 1024).toFixed(1)}</td>
-                            <td className="text-sm font-mono text-gray-400">
-                                {machine.local_ip || '0.0.0.0'}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-
-    const renderKanban = (items: Machine[]) => {
-        const online = items.filter(m => m.is_online);
-        const offline = items.filter(m => !m.is_online);
-        const warning = items.filter(m => m.uptime_hours > 720);
-
-        const Column = ({ title, colItems, borderColor }: { title: string, colItems: Machine[], borderColor: string }) => (
-            <div className={`bg-slate-900/50 rounded-xl p-4 border-t-4 ${borderColor}`}>
-                <h3 className="text-white font-semibold mb-4 flex items-center justify-between">
-                    {title} <span className="bg-slate-800 px-2 py-0.5 rounded text-sm text-slate-400">{colItems.length}</span>
-                </h3>
-                <div className="space-y-3">
-                    {colItems.map(m => (
-                        <Link key={m.id} to={`/machines/${m.machine_id}`} className="block bg-slate-800 p-3 rounded-lg border border-slate-700 hover:border-slate-500 transition-colors">
-                            <p className="font-medium text-white">{m.custom_name || m.hostname}</p>
-                            <p className="text-xs text-slate-400 mt-1">{m.os_name}</p>
-                        </Link>
-                    ))}
-                </div>
-            </div>
-        );
-
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                <Column title="✅ Online" colItems={online} borderColor="border-green-500" />
-                <Column title="⚠️ Warning" colItems={warning} borderColor="border-yellow-500" />
-                <Column title="🔴 Offline" colItems={offline} borderColor="border-red-500" />
-            </div>
-        );
-    };
+    if (loading) {
+        return <div className="animate-pulse text-emerald-500">A carregar máquinas...</div>;
+    }
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between mb-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Máquinas</h1>
-                    <p className="text-gray-500 mt-1">Gestão de endpoints</p>
+                    <h1 className="text-3xl font-bold text-gradient-apple">Máquinas</h1>
+                    <p className="text-gray-500 mt-1">
+                        {filtered.length} de {machines.length} equipamentos
+                    </p>
                 </div>
 
-                <button
-                    onClick={() => exportMachinesPDF(machines)}
-                    className="btn-apple-primary flex items-center gap-2 ripple-container"
-                >
-                    <FileDown className="w-4 h-4" />
-                    Exportar PDF
-                </button>
+                <div className="flex items-center gap-3">
+                    <button className="btn-apple-primary ripple-container flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Adicionar
+                    </button>
+
+                    <button
+                        onClick={() => exportMachinesPDF(filtered)}
+                        className="btn-apple-secondary ripple-container flex items-center gap-2"
+                    >
+                        <FileDown className="w-4 h-4" />
+                        Exportar PDF
+                    </button>
+                </div>
             </div>
 
-            {/* Passamos as filteredMachines para as funções de renderização */}
-            {viewMode === 'grid' && renderGrid(filteredMachines)}
-            {viewMode === 'list' && renderList(filteredMachines)}
-            {viewMode === 'kanban' && renderKanban(filteredMachines)}
+            {/* Filters Bar */}
+            <div className="flex items-center gap-4">
+                {/* Search */}
+                <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input
+                        type="text"
+                        placeholder="Pesquisar máquinas..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 liquid-glass rounded-xl text-white placeholder-gray-600 border border-white/10 focus:border-emerald-500 transition-colors"
+                    />
+                </div>
+
+                {/* Status Filter */}
+                <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    className="px-4 py-3 liquid-glass rounded-xl text-white border border-white/10 focus:border-emerald-500 transition-colors"
+                >
+                    <option value="all">Todas</option>
+                    <option value="online">Online</option>
+                    <option value="offline">Offline</option>
+                </select>
+
+                {/* View Mode Toggle */}
+                <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+            </div>
+
+            {/* Content */}
+            {viewMode === 'grid' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {filtered.map(machine => (
+                        <MachineCard key={machine.id} machine={machine} />
+                    ))}
+                </div>
+            )}
+
+            {viewMode === 'list' && (
+                <div className="liquid-glass rounded-xl overflow-hidden">
+                    <table className="w-full">
+                        <thead className="bg-black/30 border-b border-white/10">
+                            <tr>
+                                <th className="text-left p-4 text-sm font-semibold text-gray-400">Hostname</th>
+                                <th className="text-left p-4 text-sm font-semibold text-gray-400">IP</th>
+                                <th className="text-left p-4 text-sm font-semibold text-gray-400">OS</th>
+                                <th className="text-left p-4 text-sm font-semibold text-gray-400">RAM</th>
+                                <th className="text-left p-4 text-sm font-semibold text-gray-400">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.map(machine => (
+                                <tr key={machine.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                    <td className="p-4 font-medium text-white">{machine.custom_name || machine.hostname}</td>
+                                    <td className="p-4 text-gray-400 font-mono text-sm">{machine.local_ip || 'N/A'}</td>
+                                    <td className="p-4 text-gray-400">{machine.os_name}</td>
+                                    <td className="p-4 text-gray-400">{(machine.ram_total_mb / 1024).toFixed(1)} GB</td>
+                                    <td className="p-4">
+                                        {machine.is_online ? (
+                                            <span className="badge-apple-online">Online</span>
+                                        ) : (
+                                            <span className="badge-apple text-gray-500">Offline</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {viewMode === 'kanban' && (
+                <div className="grid grid-cols-3 gap-6">
+                    {/* Online Column */}
+                    <div className="space-y-4">
+                        <div className="liquid-glass rounded-xl p-4 border-l-4 border-emerald-500">
+                            <h3 className="font-bold text-white flex items-center justify-between">
+                                Online
+                                <span className="badge-apple-online">{filtered.filter(m => m.is_online).length}</span>
+                            </h3>
+                        </div>
+                        <div className="space-y-3">
+                            {filtered.filter(m => m.is_online).map(machine => (
+                                <div key={machine.id} className="liquid-glass-hover rounded-xl p-4 cursor-pointer">
+                                    <p className="font-medium text-white">{machine.custom_name || machine.hostname}</p>
+                                    <p className="text-sm text-gray-500">{machine.os_name}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Offline Column */}
+                    <div className="space-y-4">
+                        <div className="liquid-glass rounded-xl p-4 border-l-4 border-gray-600">
+                            <h3 className="font-bold text-white flex items-center justify-between">
+                                Offline
+                                <span className="badge-apple text-gray-500">{filtered.filter(m => !m.is_online).length}</span>
+                            </h3>
+                        </div>
+                        <div className="space-y-3">
+                            {filtered.filter(m => !m.is_online).map(machine => (
+                                <div key={machine.id} className="liquid-glass-hover rounded-xl p-4 cursor-pointer opacity-60">
+                                    <p className="font-medium text-white">{machine.custom_name || machine.hostname}</p>
+                                    <p className="text-sm text-gray-500">{machine.os_name}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Maintenance Column */}
+                    <div className="space-y-4">
+                        <div className="liquid-glass rounded-xl p-4 border-l-4 border-amber-500">
+                            <h3 className="font-bold text-white flex items-center justify-between">
+                                Manutenção
+                                <span className="badge-apple text-amber-500">0</span>
+                            </h3>
+                        </div>
+                        <p className="text-center text-gray-600 text-sm pt-8">Nenhuma máquina em manutenção</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

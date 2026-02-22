@@ -3,8 +3,8 @@
 // Executa a cada 1 minuto e guarda na database
 // ============================================================
 
-use tokio::time::{interval, Duration};
 use crate::database::{self, DbPool};
+use tokio::time::{interval, Duration};
 
 pub async fn start_metrics_aggregator(pool: DbPool) {
     let mut ticker = interval(Duration::from_secs(60)); // A cada 1 minuto
@@ -13,7 +13,7 @@ pub async fn start_metrics_aggregator(pool: DbPool) {
 
     loop {
         ticker.tick().await;
-        
+
         if let Err(e) = collect_and_store_metrics(&pool).await {
             eprintln!("[Aggregator] Erro: {}", e);
         }
