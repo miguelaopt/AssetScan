@@ -15,6 +15,24 @@ pub struct HardwareDetails {
     pub ram_type: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BatteryInfo {
+    pub status: u16,
+    pub estimated_charge_remaining: u16,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MonitorInfo {
+    pub name: String,
+    pub resolution: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UsbDevice {
+    pub name: String,
+    pub device_id: String,
+}
+
 pub fn collect_hardware_details() -> Result<HardwareDetails> {
     Ok(HardwareDetails {
         serial_number: get_serial_number()?,
@@ -137,4 +155,20 @@ fn get_ram_type() -> Result<String> {
     };
     
     Ok(ram_type.to_string())
+}
+
+pub fn get_battery_info() -> Result<BatteryInfo> {
+    // Implementação pendente...
+    Ok(BatteryInfo {
+        status: 2, // 2 = AC Power (Ligado à corrente)
+        estimated_charge_remaining: 100,
+    })
+}
+
+pub fn get_monitors() -> Result<Vec<MonitorInfo>> {
+    Ok(vec![]) // Retorna lista vazia por agora
+}
+
+pub fn get_usb_devices() -> Result<Vec<UsbDevice>> {
+    Ok(vec![]) // Retorna lista vazia por agora
 }

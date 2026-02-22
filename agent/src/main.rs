@@ -8,8 +8,8 @@ mod screenshot;
 mod network_collector;
 mod screen_time_tracker;
 mod wmi_collector;
-mod hardware_collector; // NOVO!
-mod security_collector; // NOVO!
+mod hardware_collector;
+mod security_collector;
 
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -19,7 +19,7 @@ use tokio::time;
 #[tokio::main]
 async fn main() -> Result<()> {
     println!("╔═══════════════════════════════════════════════════════╗");
-    println!("║         AssetScan Agent v3.0.0                        ║");
+    println!("║         AssetScan Agent v4.0.0 BETA                   ║");
     println!("╚═══════════════════════════════════════════════════════╝\n");
 
     let config = config::Config::load()
@@ -31,9 +31,8 @@ async fn main() -> Result<()> {
     // Inicia screen time tracker em background
     tokio::spawn(screen_time_tracker::start_tracking());
 
-    // Loop principal
-    let interval_minutes = config.interval_minutes.min(30);
-    // ADICIONA ESTA LINHA:
+    // ✅ FIX: Interval máximo 5 minutos (antes era 30)
+    let interval_minutes = config.interval_minutes.min(5);
     let mut interval = time::interval(Duration::from_secs(interval_minutes * 60));
 
     loop {
@@ -51,7 +50,7 @@ async fn run_cycle(config: &config::Config) -> Result<()> {
     // 1. Coleta dados
     let mut report = collector::collect_full_report(config)?;
     
-    // 2. Adiciona screen time
+    // 2. Adiciona screen time (atualizado a cada 5 min)
     report.screen_time = screen_time_tracker::get_daily_stats();
     
     println!("[Coleta] ✓ {} processos | {} apps | {} conexões", 
@@ -60,11 +59,11 @@ async fn run_cycle(config: &config::Config) -> Result<()> {
         report.network.len()
     );
 
-    // 3. Envia ao servidor
+    // 3. Envia ao servidor e recebe políticas
     let policies = send_report_and_get_policies(&report, config).await?;
     println!("[Server] ✓ {} políticas recebidas", policies.len());
 
-    // 4. Aplica enforcement
+    // 4. Aplica enforcement (com retry e fallback)
     if config.enforcement_enabled {
         let blocked = enforcer::enforce_policies(&policies, &report.processes)?;
         if blocked > 0 {
@@ -89,7 +88,7 @@ async fn send_report_and_get_policies(
     let response = client
         .post(&url)
         .header("X-API-Key", &config.api_key)
-        .header("X-Agent-Version", "3.0.0")
+        .header("X-Agent-Version", "4.0.0")
         .json(report)
         .send()
         .await

@@ -29,6 +29,7 @@ tokio-stream = { version = "0.1", features = ["sync"] }
 futures = "0.3"
 tokio-cron-scheduler = "0.10"
 lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
+dns-lookup = "2.0"
 
 [profile.release]
 opt-level = 3

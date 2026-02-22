@@ -1,42 +1,23 @@
-import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
-interface MetricData {
-    timestamp: string;
-    cpu: number;
-    ram: number;
-}
-
-export function useMetricsHistory(machineId: string = 'all', hours: number = 12) {
-    const [data, setData] = useState<MetricData[]>([]);
-    const [loading, setLoading] = useState(true);
+// CORRETO: A função NÃO É async
+export function useMetricsHistory(machineId: string, hours: number) {
+    const [data, setData] = useState<any[]>([]);
 
     useEffect(() => {
-        loadMetrics();
-        const interval = setInterval(loadMetrics, 30_000); // Actualiza a cada 30s
-        return () => clearInterval(interval);
+        // A função async fica aqui dentro!
+        const fetchMetrics = async () => {
+            try {
+                const result = await invoke("get_metrics_history", { machineId, hours });
+                setData(result as any[]);
+            } catch (err) {
+                console.error("Erro ao carregar métricas:", err);
+            }
+        };
+
+        fetchMetrics();
     }, [machineId, hours]);
 
-    const loadMetrics = async () => {
-        try {
-            setLoading(true);
-            const result = await invoke<Array<[string, number, number]>>('get_metrics_history', {
-                machineId,
-                hours,
-            });
-
-            // Transforma dados do backend
-            const formatted = result.map(([timestamp, cpu, ram]) => ({
-                timestamp,
-                cpu,
-                ram,
-            }));
-
-            setData(formatted);
-        } catch (err) {
-                console.error("Erro ao carregar métricas:", err);
-        }
-    };
-
-    return { data, loading, reload: loadMetrics };
+    return { data };
 }

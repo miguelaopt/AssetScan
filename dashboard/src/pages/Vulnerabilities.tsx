@@ -1,172 +1,216 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { AlertTriangle, Shield, CheckCircle, XCircle } from "lucide-react";
-import { Vulnerability } from "../types";
+import { Shield, ShieldAlert, AlertTriangle, CheckCircle, Search, Play, RefreshCw } from "lucide-react";
+import { useMachines } from "../hooks/useMachines";
+import toast from "react-hot-toast";
+
+interface Vulnerability {
+    id: number;
+    machine_id: string;
+    software_name: string;
+    current_version: string;
+    cve_id: string;
+    severity: "critical" | "high" | "medium" | "low";
+    description: string;
+    solution: string;
+    detected_at: string;
+}
 
 export default function Vulnerabilities() {
+    const { machines } = useMachines();
     const [vulns, setVulns] = useState<Vulnerability[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('all');
+    const [scanning, setScanning] = useState(false);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
         loadVulnerabilities();
-    }, [filter]);
+    }, []);
 
     const loadVulnerabilities = async () => {
         try {
             setLoading(true);
-            const severity = filter === 'all' ? null : filter;
-            const result = await invoke<Vulnerability[]>("get_vulnerabilities", {
-                machineId: null,
-                severity,
-            });
-            setVulns(result);
+            const data = await invoke<Vulnerability[]>("list_vulnerabilities");
+            setVulns(data);
         } catch (err) {
             console.error(err);
+            toast.error("Erro ao carregar vulnerabilidades");
         } finally {
             setLoading(false);
         }
     };
 
-    const getSeverityColor = (severity: string) => {
-        switch (severity) {
-            case 'CRITICAL': return 'text-red-500 bg-red-500/15 border-red-500/30';
-            case 'HIGH': return 'text-orange-500 bg-orange-500/15 border-orange-500/30';
-            case 'MEDIUM': return 'text-yellow-500 bg-yellow-500/15 border-yellow-500/30';
-            case 'LOW': return 'text-blue-500 bg-blue-500/15 border-blue-500/30';
-            default: return 'text-gray-500 bg-gray-500/15 border-gray-500/30';
+    const runScan = async () => {
+        if (!confirm("Iniciar scan de vulnerabilidades em todas as máquinas online?")) return;
+
+        try {
+            setScanning(true);
+            await invoke("scan_vulnerabilities_all");
+            toast.success("Scan iniciado! Resultados em breve...");
+            setTimeout(loadVulnerabilities, 3000);
+        } catch (err) {
+            toast.error(`Erro: ${err}`);
+        } finally {
+            setScanning(false);
         }
     };
 
-    const stats = {
-        critical: vulns.filter(v => v.severity === 'CRITICAL').length,
-        high: vulns.filter(v => v.severity === 'HIGH').length,
-        medium: vulns.filter(v => v.severity === 'MEDIUM').length,
-        low: vulns.filter(v => v.severity === 'LOW').length,
-    };
+    const filtered = vulns.filter(v =>
+        v.software_name.toLowerCase().includes(search.toLowerCase()) ||
+        v.cve_id.toLowerCase().includes(search.toLowerCase())
+    );
 
-    if (loading) {
-        return <div className="animate-pulse">A carregar vulnerabilidades...</div>;
-    }
+    const criticalCount = vulns.filter(v => v.severity === "critical").length;
+    const highCount = vulns.filter(v => v.severity === "high").length;
+    const mediumCount = vulns.filter(v => v.severity === "medium").length;
 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-white mb-2">Vulnerabilidades</h1>
-                <p className="text-gray-400">Análise de segurança e CVEs detectadas</p>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-4 gap-4">
-                <div className="glass rounded-xl p-4 border-l-4 border-red-500">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-400">Críticas</p>
-                            <p className="text-3xl font-bold text-red-500">{stats.critical}</p>
-                        </div>
-                        <AlertTriangle className="w-8 h-8 text-red-500" />
-                    </div>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-gradient-apple">Vulnerabilidades</h1>
+                    <p className="text-gray-500 mt-1">Scan de CVEs e exposições conhecidas</p>
                 </div>
 
-                <div className="glass rounded-xl p-4 border-l-4 border-orange-500">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-400">Altas</p>
-                            <p className="text-3xl font-bold text-orange-500">{stats.high}</p>
-                        </div>
-                        <Shield className="w-8 h-8 text-orange-500" />
-                    </div>
-                </div>
-
-                <div className="glass rounded-xl p-4 border-l-4 border-yellow-500">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-400">Médias</p>
-                            <p className="text-3xl font-bold text-yellow-500">{stats.medium}</p>
-                        </div>
-                        <AlertTriangle className="w-8 h-8 text-yellow-500" />
-                    </div>
-                </div>
-
-                <div className="glass rounded-xl p-4 border-l-4 border-blue-500">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-400">Baixas</p>
-                            <p className="text-3xl font-bold text-blue-500">{stats.low}</p>
-                        </div>
-                        <CheckCircle className="w-8 h-8 text-blue-500" />
-                    </div>
-                </div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex gap-2">
-                {(['all', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(f => (
+                <div className="flex items-center gap-3">
                     <button
-                        key={f}
-                        onClick={() => setFilter(f)}
-                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${filter === f
-                                ? 'bg-gradient-to-r from-cyber-500 to-deep-blue-500 text-white'
-                                : 'glass text-gray-400 hover:text-white'
-                            }`}
+                        onClick={loadVulnerabilities}
+                        className="btn-apple-secondary ripple-container flex items-center gap-2"
                     >
-                        {f === 'all' ? 'Todas' : f}
+                        <RefreshCw className="w-4 h-4" />
+                        Atualizar
                     </button>
-                ))}
+                    <button
+                        onClick={runScan}
+                        disabled={scanning}
+                        className="btn-apple-primary ripple-container flex items-center gap-2 disabled:opacity-50"
+                    >
+                        {scanning ? (
+                            <>
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                A Scanear...
+                            </>
+                        ) : (
+                            <>
+                                <Play className="w-4 h-4" />
+                                Scan Completo
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {/* Stats - TEMA VERDE */}
+            <div className="grid grid-cols-4 gap-4">
+                <div className="liquid-glass-hover rounded-2xl p-6 border-l-4 border-red-500">
+                    <div className="flex items-center gap-3 mb-2">
+                        <AlertTriangle className="w-6 h-6 text-red-500" />
+                        <span className="text-sm text-gray-400">Críticas</span>
+                    </div>
+                    <p className="text-3xl font-bold text-red-400">{criticalCount}</p>
+                    <p className="text-xs text-gray-600 mt-1">Requerem ação imediata</p>
+                </div>
+
+                <div className="liquid-glass-hover rounded-2xl p-6 border-l-4 border-amber-500">
+                    <div className="flex items-center gap-3 mb-2">
+                        <ShieldAlert className="w-6 h-6 text-amber-500" />
+                        <span className="text-sm text-gray-400">Altas</span>
+                    </div>
+                    <p className="text-3xl font-bold text-amber-400">{highCount}</p>
+                    <p className="text-xs text-gray-600 mt-1">Atenção prioritária</p>
+                </div>
+
+                <div className="liquid-glass-hover rounded-2xl p-6 border-l-4 border-emerald-500">
+                    <div className="flex items-center gap-3 mb-2">
+                        <Shield className="w-6 h-6 text-emerald-500" />
+                        <span className="text-sm text-gray-400">Médias</span>
+                    </div>
+                    <p className="text-3xl font-bold text-emerald-400">{mediumCount}</p>
+                    <p className="text-xs text-gray-600 mt-1">Monitorizar</p>
+                </div>
+
+                <div className="liquid-glass-hover rounded-2xl p-6 border-l-4 border-emerald-500">
+                    <div className="flex items-center gap-3 mb-2">
+                        <CheckCircle className="w-6 h-6 text-emerald-500" />
+                        <span className="text-sm text-gray-400">Protegidas</span>
+                    </div>
+                    <p className="text-3xl font-bold text-emerald-400">
+                        {machines.length - Math.min(vulns.length, machines.length)}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">Sem vulnerabilidades</p>
+                </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input
+                    type="text"
+                    placeholder="Pesquisar por CVE ou software..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 liquid-glass rounded-xl text-white placeholder-gray-600 border border-white/10 focus:border-emerald-500 transition-colors"
+                />
             </div>
 
             {/* Table */}
-            <div className="glass rounded-xl overflow-hidden">
+            <div className="liquid-glass rounded-xl overflow-hidden">
                 <table className="w-full">
-                    <thead className="bg-gray-900">
+                    <thead className="bg-black/30 border-b border-white/10">
                         <tr>
-                            <th className="text-left p-4 text-sm font-semibold text-gray-300">CVE ID</th>
-                            <th className="text-left p-4 text-sm font-semibold text-gray-300">Software</th>
-                            <th className="text-left p-4 text-sm font-semibold text-gray-300">Severidade</th>
-                            <th className="text-left p-4 text-sm font-semibold text-gray-300">Descrição</th>
-                            <th className="text-left p-4 text-sm font-semibold text-gray-300">Status</th>
+                            <th className="text-left p-4 text-sm font-semibold text-gray-400">Severidade</th>
+                            <th className="text-left p-4 text-sm font-semibold text-gray-400">CVE ID</th>
+                            <th className="text-left p-4 text-sm font-semibold text-gray-400">Software</th>
+                            <th className="text-left p-4 text-sm font-semibold text-gray-400">Versão</th>
+                            <th className="text-left p-4 text-sm font-semibold text-gray-400">Máquina</th>
+                            <th className="text-left p-4 text-sm font-semibold text-gray-400">Detectado</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-700">
-                        {vulns.map((vuln) => (
-                            <tr key={vuln.id} className="hover:bg-gray-800/50 transition-colors">
-                                <td className="p-4">
-                                    <code className="text-xs text-cyber-500 font-mono bg-cyber-500/10 px-2 py-1 rounded">
-                                        {vuln.cve_id}
-                                    </code>
-                                </td>
-                                <td className="p-4">
-                                    <div>
-                                        <p className="text-sm font-medium text-white">{vuln.software_name}</p>
-                                        <p className="text-xs text-gray-500">{vuln.software_version}</p>
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <span className={`badge ${getSeverityColor(vuln.severity)}`}>
-                                        {vuln.severity}
-                                    </span>
-                                </td>
-                                <td className="p-4 text-sm text-gray-400 max-w-md truncate">
-                                    {vuln.description || 'Sem descrição'}
-                                </td>
-                                <td className="p-4">
-                                    <span className={`badge ${vuln.status === 'open' ? 'badge-error' : 'badge-success'
-                                        }`}>
-                                        {vuln.status}
-                                    </span>
+                    <tbody>
+                        {loading ? (
+                            <tr>
+                                <td colSpan={6} className="text-center py-12">
+                                    <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-2" />
+                                    <p className="text-gray-500">A carregar...</p>
                                 </td>
                             </tr>
-                        ))}
+                        ) : filtered.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="text-center py-12">
+                                    <Shield className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
+                                    <p className="text-gray-500 font-medium">
+                                        {search ? 'Nenhuma vulnerabilidade encontrada' : 'Nenhuma vulnerabilidade detectada! 🎉'}
+                                    </p>
+                                    {!search && <p className="text-xs text-gray-600 mt-1">Sistema seguro</p>}
+                                </td>
+                            </tr>
+                        ) : (
+                            filtered.map((vuln) => (
+                                <tr key={vuln.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                    <td className="p-4">
+                                        <span className={`badge-apple text-xs font-semibold ${vuln.severity === 'critical' ? 'text-red-400 bg-red-500/10 border-red-500/30' :
+                                                vuln.severity === 'high' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
+                                                    vuln.severity === 'medium' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
+                                                        'text-gray-400 bg-gray-500/10 border-gray-500/30'
+                                            }`}>
+                                            {vuln.severity.toUpperCase()}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 font-mono text-emerald-400 text-sm">{vuln.cve_id}</td>
+                                    <td className="p-4 text-white font-medium">{vuln.software_name}</td>
+                                    <td className="p-4 text-gray-400 font-mono text-sm">{vuln.current_version}</td>
+                                    <td className="p-4 text-gray-400">
+                                        {machines.find(m => m.machine_id === vuln.machine_id)?.hostname || 'Unknown'}
+                                    </td>
+                                    <td className="p-4 text-gray-400 text-sm">
+                                        {new Date(vuln.detected_at).toLocaleDateString('pt-PT')}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
-
-                {vulns.length === 0 && (
-                    <div className="p-12 text-center">
-                        <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                        <p className="text-gray-400">Nenhuma vulnerabilidade detectada!</p>
-                    </div>
-                )}
             </div>
         </div>
     );

@@ -9,11 +9,12 @@ export default function Sidebar() {
     const location = useLocation();
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+    // ✅ FIX: Todas as badges removidas (badge: null)
     const links = [
         { to: "/", icon: LayoutDashboard, label: "Dashboard", badge: null },
-        { to: "/machines", icon: MonitorSmartphone, label: "Máquinas", badge: "12" },
+        { to: "/machines", icon: MonitorSmartphone, label: "Máquinas", badge: null },
         { to: "/screen-time", icon: Clock, label: "Screen Time", badge: null },
-        { to: "/vulnerabilities", icon: ShieldAlert, label: "Vulnerabilities", badge: "3" },
+        { to: "/vulnerabilities", icon: ShieldAlert, label: "Vulnerabilities", badge: null },
         { to: "/policies", icon: Lock, label: "Políticas", badge: null },
         { to: "/compliance", icon: Scale, label: "Compliance", badge: null },
         { to: "/webhooks", icon: Webhook, label: "Webhooks", badge: null },
@@ -24,18 +25,13 @@ export default function Sidebar() {
 
     return (
         <aside className="w-80 relative flex flex-col h-screen">
-            {/* Background com gradient */}
+            {/* Background gradientes */}
             <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-950 to-black" />
-
-            {/* Liquid glass overlay */}
             <div className="absolute inset-0 liquid-glass" />
-
-            {/* Glow line no lado direito */}
             <div className="absolute top-0 right-0 w-px h-full bg-gradient-to-b from-transparent via-emerald-500/50 to-transparent" />
 
-            {/* Content */}
             <div className="relative z-10 flex flex-col h-full">
-                {/* Logo Header com animação */}
+                {/* Logo */}
                 <div className="p-8 border-b border-white/5">
                     <div className="flex items-center gap-4 spring-in">
                         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/50 glow-green">
@@ -43,7 +39,7 @@ export default function Sidebar() {
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-gradient-apple">AssetScan</h1>
-                            <p className="text-xs text-gray-500 font-medium">Enterprise v3.0</p>
+                            <p className="text-xs text-gray-500 font-medium">V4 Beta</p>
                         </div>
                     </div>
                 </div>
@@ -69,40 +65,28 @@ export default function Sidebar() {
                                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                                     }
                 `}
-                                style={{
-                                    animationDelay: `${idx * 50}ms`,
-                                }}
+                                style={{ animationDelay: `${idx * 50}ms` }}
                             >
-                                {/* Active indicator */}
                                 {isActive && (
                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-r-full spring-in" />
                                 )}
 
                                 <div className="flex items-center gap-3">
-                                    <div className={`
-                    transition-all duration-300
-                    ${isActive ? 'text-emerald-400' : 'text-gray-500'}
-                    ${isHovered ? 'scale-110 rotate-6' : 'scale-100'}
-                  `}>
+                                    <div className={`transition-all duration-300 ${isActive ? 'text-emerald-400' : 'text-gray-500'} ${isHovered ? 'scale-110 rotate-6' : 'scale-100'}`}>
                                         <Icon className="w-5 h-5" strokeWidth={2.5} />
                                     </div>
                                     <span>{link.label}</span>
                                 </div>
 
-                                {/* Badge ou Arrow */}
-                                {link.badge ? (
-                                    <span className="badge-apple text-xs">
-                                        {link.badge}
-                                    </span>
-                                ) : isHovered ? (
+                                {isHovered && !link.badge && (
                                     <ChevronRight className="w-4 h-4 text-emerald-400 spring-in" />
-                                ) : null}
+                                )}
                             </Link>
                         );
                     })}
                 </nav>
 
-                {/* Status Footer com animação */}
+                {/* Status Footer */}
                 <div className="p-4 border-t border-white/5">
                     <div className="liquid-glass rounded-2xl p-4 spring-in">
                         <div className="flex items-center justify-between mb-3">
@@ -120,9 +104,7 @@ export default function Sidebar() {
                             <span className="text-xs font-mono text-gray-500">75%</span>
                         </div>
 
-                        <p className="text-xs font-mono text-gray-600 mt-2">
-                            localhost:7474
-                        </p>
+                        <p className="text-xs font-mono text-gray-600 mt-2">localhost:7474</p>
                     </div>
                 </div>
             </div>

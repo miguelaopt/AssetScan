@@ -46,16 +46,19 @@ pub async fn kill_process_remote(
     pool: State<'_, DbPool>,
 ) -> Result<(), String> {
     // Cria política temporária para matar processo
-    database::create_policy(
+    let _id = database::create_policy(
         &pool,
         Some(&machine_id),
-        "process",
-        &process_name,
-        "kill",
-        &format!("Terminado remotamente pelo administrador"),
-        "admin",
-    )
-    .map_err(|e| e.to_string())?;
+        &format!("Bloqueio de Processo: {}", process_name), // name
+        "Criado via Dashboard",                             // description
+        "app",                                              // policy_type
+        1,                                                  // priority
+        &process_name,                                      // target
+        "block",                                            // action
+        "{}",                                               // config_json
+        "Terminado remotamente pelo administrador",         // reason
+        "admin",                                            // created_by
+    ).map_err(|e| e.to_string())?;
 
     database::log_audit(
         &pool,
@@ -80,14 +83,18 @@ pub async fn block_software(
     let policy_id = database::create_policy(
         &pool,
         Some(&machine_id),
-        "application",
-        &software_name,
-        "block",
-        &reason,
-        "admin",
+        &format!("Bloqueio de Software: {}", software_name), // name
+        "Criado via Dashboard",                              // description
+        "app",                                               // policy_type
+        1,                                                   // priority
+        &software_name,                                      // target
+        "block",                                             // action
+        "{}",                                                // config_json
+        &reason,                                             // reason
+        "admin",                                             // created_by
     )
     .map_err(|e| e.to_string())?;
-
+    
     database::log_audit(
         &pool,
         "block_software",
@@ -95,9 +102,8 @@ pub async fn block_software(
         &policy_id,
         "admin",
         &format!("Blocked {} on machine {}", software_name, machine_id),
-    )
-    .ok();
-
+    ).ok();
+    
     Ok(policy_id)
 }
 
@@ -288,16 +294,21 @@ pub async fn block_software_for_machine(
     reason: String,
     pool: State<'_, DbPool>,
 ) -> Result<String, String> {
-    database::create_policy(
+    let id = database::create_policy(
         &pool,
         Some(&machine_id),
-        "application",
-        &software_name,
-        "block",
-        &reason,
-        "admin",
-    )
-    .map_err(|e| e.to_string())
+        &format!("Bloqueio de Software: {}", software_name), // name
+        "Criado via Dashboard",                              // description
+        "app",                                               // policy_type
+        1,                                                   // priority
+        &software_name,                                      // target
+        "block",                                             // action
+        "{}",                                                // config_json
+        &reason,                                             // reason
+        "admin",                                             // created_by
+    ).map_err(|e| e.to_string())?;
+
+    Ok(id)
 }
 
 #[tauri::command]
@@ -307,16 +318,19 @@ pub async fn kill_process(
     pool: State<'_, DbPool>,
 ) -> Result<(), String> {
     // Cria política temporária para bloquear processo
-    database::create_policy(
+    let _id = database::create_policy(
         &pool,
         Some(&machine_id),
-        "application",
-        &process_name,
-        "block",
-        "Terminado pelo admin",
-        "admin",
-    )
-    .map_err(|e| e.to_string())?;
+        &format!("Regra para {}", process_name),  // name
+        "Criado via Dashboard",                   // description
+        "app",                                    // policy_type
+        1,                                        // priority
+        &process_name,                            // target
+        "block",                                  // action
+        "{}",                                     // config_json
+        "Terminado pelo admin",                   // reason
+        "admin",                                  // created_by
+    ).map_err(|e| e.to_string())?;
 
     Ok(())
 }

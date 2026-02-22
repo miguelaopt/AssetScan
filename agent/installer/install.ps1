@@ -36,25 +36,25 @@ Set-ItemProperty -Path $RegPath -Name "APIKey" -Value $APIKey
 Set-ItemProperty -Path $RegPath -Name "IntervalMinutes" -Value $IntervalMinutes -Type DWord
 Set-ItemProperty -Path $RegPath -Name "EnforcementEnabled" -Value $(if ($DisableEnforcement) { 0 } else { 1 }) -Type DWord
 
-# 4. Criar servico
-Write-Host "[4/5] Criando servico..." -ForegroundColor Yellow
+# 4. Criar Tarefa Agendada (Em vez de Servico)
+Write-Host "[4/5] Criando Tarefa Agendada invisivel em background..." -ForegroundColor Yellow
 
-$ServiceName = "AssetScanAgent"
-$ServicePath = "$InstallPath\assetscan-agent.exe"
+$TaskName = "AssetScanAgent"
+$TaskPath = "$InstallPath\assetscan-agent.exe"
 
-if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
-    Stop-Service -Name $ServiceName -Force
-    sc.exe delete $ServiceName
-    Start-Sleep -Seconds 2
-}
+# Remove a tarefa antiga se já existir
+Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
 
-New-Service -Name $ServiceName -DisplayName "AssetScan Agent" -Description "Agente AssetScan" -BinaryPathName $ServicePath -StartupType Automatic | Out-Null
+# Configura a nova tarefa para iniciar com o Windows (como SYSTEM / Administrador)
+$Action = New-ScheduledTaskAction -Execute $TaskPath
+$Trigger = New-ScheduledTaskTrigger -AtStartup
+$Principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+$Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0
+
+Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Principal $Principal -Settings $Settings -Force | Out-Null
 
 # 5. Iniciar
-Write-Host "[5/5] Iniciando servico..." -ForegroundColor Yellow
-Start-Service -Name $ServiceName
+Write-Host "[5/5] A iniciar o Agente AssetScan..." -ForegroundColor Yellow
+Start-ScheduledTask -TaskName $TaskName
 
-Write-Host ""
-Write-Host "Instalacao concluida!" -ForegroundColor Green
-Write-Host "Servidor: $ServerURL" -ForegroundColor Cyan
-Write-Host "Intervalo: $IntervalMinutes minutos" -ForegroundColor Cyan
+Write-Host "`n[SUCESSO] Agente instalado e a correr em background!" -ForegroundColor Green

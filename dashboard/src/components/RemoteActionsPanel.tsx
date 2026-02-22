@@ -1,12 +1,21 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Power, RefreshCw, Lock, Terminal, Ban } from "lucide-react";
+import { Power, RefreshCw, Lock, Terminal, Ban, LogOut, Moon, Download } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface Props {
     machineId: string;
     machineName: string;
 }
+
+const actions = [
+    { id: "restart", label: "Reiniciar", icon: RefreshCw, color: "blue" },
+    { id: "shutdown", label: "Desligar", icon: Power, color: "red" },
+    { id: "lock", label: "Bloquear", icon: Lock, color: "amber" },
+    { id: "logoff", label: "Logout", icon: LogOut, color: "gray" },
+    { id: "sleep", label: "Suspender", icon: Moon, color: "purple" },
+    { id: "update", label: "Windows Update", icon: Download, color: "emerald" },
+];
 
 export default function RemoteActionsPanel({ machineId, machineName }: Props) {
     const [loading, setLoading] = useState(false);

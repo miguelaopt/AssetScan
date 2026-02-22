@@ -84,13 +84,17 @@ pub fn initialize(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS idx_processes_machine ON processes(machine_id);
         CREATE INDEX IF NOT EXISTS idx_processes_time ON processes(captured_at);
 
-        -- Políticas de segurança (NOVO)
+        -- Políticas de segurança (V3.0 Enterprise)
         CREATE TABLE IF NOT EXISTS policies (
             id           TEXT PRIMARY KEY,
             machine_id   TEXT REFERENCES machines(machine_id) ON DELETE CASCADE,
-            policy_type  TEXT NOT NULL CHECK(policy_type IN ('application', 'website')),
+            name         TEXT NOT NULL DEFAULT 'Nova Política',
+            description  TEXT NOT NULL DEFAULT '',
+            policy_type  TEXT NOT NULL, -- Sem restrição CHECK (pode ser 'web', 'app', 'device')
+            priority     INTEGER NOT NULL DEFAULT 1,
             target       TEXT NOT NULL,
-            action       TEXT NOT NULL CHECK(action IN ('allow', 'block')),
+            action       TEXT NOT NULL, -- Sem restrição CHECK ('block', 'allow', etc)
+            config_json  TEXT NOT NULL DEFAULT '{}',
             reason       TEXT NOT NULL DEFAULT '',
             created_by   TEXT NOT NULL DEFAULT 'admin',
             created_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -635,9 +639,13 @@ pub fn get_processes(pool: &DbPool, machine_id: &str) -> Result<Vec<ProcessInfo>
 pub fn create_policy(
     pool: &DbPool,
     machine_id: Option<&str>,
+    name: &str,
+    description: &str,
     policy_type: &str,
+    priority: i32,
     target: &str,
     action: &str,
+    config_json: &str,
     reason: &str,
     created_by: &str,
 ) -> Result<String> {
@@ -645,60 +653,56 @@ pub fn create_policy(
     let id = uuid::Uuid::new_v4().to_string();
 
     conn.execute(
-        "INSERT INTO policies (id, machine_id, policy_type, target, action, reason, created_by)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-        params![
-            id,
-            machine_id,
-            policy_type,
-            target,
-            action,
-            reason,
-            created_by
-        ],
+        "INSERT INTO policies (id, machine_id, name, description, policy_type, priority, target, action, config_json, reason, created_by)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        params![id, machine_id, name, description, policy_type, priority, target, action, config_json, reason, created_by],
     )?;
 
     Ok(id)
 }
 
-pub fn list_policies(pool: &DbPool, machine_id: Option<&str>) -> Result<Vec<Policy>> {
+pub fn list_policies(
+    pool: &DbPool,
+    machine_id: Option<&str>,
+) -> Result<Vec<Policy>> {
     let conn = pool.lock().unwrap();
 
+    // 1. Atualizamos o SELECT para incluir as novas colunas
     let query = if let Some(mid) = machine_id {
         format!(
-            "SELECT id, machine_id, policy_type, target, action, reason, created_by, created_at, enabled
+            "SELECT id, machine_id, name, description, policy_type, priority, target, action, config_json, reason, created_by, created_at, enabled
              FROM policies
              WHERE machine_id = '{}' OR machine_id IS NULL
-             ORDER BY created_at DESC",
+             ORDER BY priority ASC, created_at DESC",
             mid
         )
     } else {
-        "SELECT id, machine_id, policy_type, target, action, reason, created_by, created_at, enabled
+        "SELECT id, machine_id, name, description, policy_type, priority, target, action, config_json, reason, created_by, created_at, enabled
          FROM policies
-         ORDER BY created_at DESC"
-            .to_string()
+         ORDER BY priority ASC, created_at DESC".to_string()
     };
 
     let mut stmt = conn.prepare(&query)?;
 
-    let policies = stmt
-        .query_map([], |row| {
-            let policy_type_str: String = row.get(2)?;
-            let action_str: String = row.get(4)?;
-
-            Ok(Policy {
-                id: row.get(0)?,
-                machine_id: row.get(1)?,
-                policy_type: serde_json::from_str(&format!("\"{}\"", policy_type_str)).unwrap(),
-                target: row.get(3)?,
-                action: serde_json::from_str(&format!("\"{}\"", action_str)).unwrap(),
-                reason: row.get(5)?,
-                created_by: row.get(6)?,
-                created_at: row.get(7)?,
-                enabled: row.get::<_, i32>(8)? != 0,
-            })
-        })?
-        .collect::<Result<Vec<Policy>>>()?;
+    // 2. Extraímos e mapeamos as colunas lidas para a estrutura
+    let policies = stmt.query_map([], |row| {
+        Ok(Policy {
+            id: row.get(0)?,
+            machine_id: row.get(1)?,
+            name: row.get(2)?,
+            description: row.get(3)?,
+            policy_type: row.get(4)?,
+            priority: row.get(5)?,
+            target: row.get(6)?,
+            action: row.get(7)?,
+            config_json: row.get(8)?,
+            reason: row.get(9)?,
+            created_by: row.get(10)?,
+            created_at: row.get(11)?,
+            enabled: row.get::<_, i32>(12)? != 0,
+        })
+    })?
+    .collect::<Result<Vec<Policy>>>()?;
 
     Ok(policies)
 }

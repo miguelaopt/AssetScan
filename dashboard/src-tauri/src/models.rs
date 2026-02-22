@@ -127,15 +127,20 @@ pub struct ProcessInfo {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Policy {
     pub id: String,
-    pub machine_id: Option<String>, // null = aplica-se a todas
-    pub policy_type: PolicyType,
+    pub machine_id: Option<String>,
+    pub name: String,             // NOVO
+    pub description: String,      // NOVO
+    pub policy_type: String,      // Removido o Enum, passa a String ("web", "app", "device", etc)
+    pub priority: i32,            // NOVO
     pub target: String,
-    pub action: PolicyAction,
+    pub action: String,           // String ("block", "allow", "alert")
+    pub config_json: String,      // NOVO: Guarda horários, hashes, domínios
     pub reason: String,
     pub created_by: String,
     pub created_at: String,
     pub enabled: bool,
 }
+
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]

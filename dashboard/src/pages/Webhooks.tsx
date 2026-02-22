@@ -8,6 +8,16 @@ export default function Webhooks() {
         { id: "2", name: "Microsoft Teams Sec", url: "https://outlook.office.com/webhook/...", events: ["vulnerability.found"], enabled: true }
     ]);
 
+    // src/pages/Webhooks.tsx
+    const testWebhook = async (webhookId: string) => {
+        try {
+            await invoke("test_webhook", { webhookId });
+            toast.success("Webhook testado com sucesso!");
+        } catch (err) {
+            toast.error("Falha no webhook");
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">

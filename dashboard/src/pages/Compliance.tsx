@@ -10,13 +10,16 @@ export default function Compliance() {
         standard: "ISO27001", passed: 18, failed: 2, total: 20, lastScan: "Hoje, 10:30"
     });
 
-    const runScan = () => {
-        setIsScanning(true);
-        setTimeout(() => {
-            setReport({ standard: standard, passed: 19, failed: 1, total: 20, lastScan: "Agora mesmo" });
-            setIsScanning(false);
-            toast.success("Auditoria concluída com sucesso!", { style: { background: '#0a0a0a', color: '#fff', border: '1px solid #10b981' }, iconTheme: { primary: '#10b981', secondary: '#fff' } });
-        }, 1500);
+    // src/pages/Compliance.tsx
+    const runAudit = async () => {
+        try {
+            const result = await invoke("run_compliance_audit", {
+                standard: selectedStandard
+            });
+            setReport(result);
+        } catch (err) {
+            toast.error("Erro ao executar audit");
+        }
     };
 
     const exportPDF = () => {
@@ -48,7 +51,7 @@ export default function Compliance() {
                         <option value="SOC2">SOC 2 (Service Organization Control)</option>
                     </select>
                 </div>
-                <button onClick={runScan} disabled={isScanning} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl font-medium shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center gap-2 disabled:opacity-50">
+                <button onClick={runAudit} disabled={isScanning} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl font-medium shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center gap-2 disabled:opacity-50">
                     {isScanning ? "A Avaliar..." : <><Play className="w-4 h-4" /> Correr Auditoria</>}
                 </button>
             </div>

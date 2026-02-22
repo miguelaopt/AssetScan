@@ -1,6 +1,20 @@
-import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { Policy } from '../types';
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+
+export interface Policy {
+    id: string;
+    machine_id: string | null;
+    name: string;
+    description: string;
+    policy_type: string;
+    priority: number;
+    target: string;
+    action: string;
+    config_json: string;
+    reason: string;
+    created_at: string;
+    enabled: boolean;
+}
 
 export function usePolicies(machineId?: string) {
     const [policies, setPolicies] = useState<Policy[]>([]);
@@ -9,51 +23,45 @@ export function usePolicies(machineId?: string) {
     const loadPolicies = async () => {
         try {
             setLoading(true);
-            const result = await invoke<Policy[]>('list_policies', {
-                machineId: machineId || null,
-            });
-            setPolicies(result);
-        } catch (err) {
-            console.error('Error loading policies:', err);
+            const data = await invoke<Policy[]>("list_policies", { machineId: machineId || null });
+            setPolicies(data);
+        } catch (error) {
+            console.error("Failed to load policies", error);
         } finally {
             setLoading(false);
         }
     };
 
-    const createPolicy = async (
-        policyType: string,
-        target: string,
-        action: string,
-        reason: string,
-    ) => {
+    useEffect(() => { loadPolicies(); }, [machineId]);
+
+    const createPolicy = async (policyData: any) => {
         try {
-            await invoke('create_policy', {
-                machineId: machineId || null,
-                policyType,
-                target,
-                action,
-                reason,
+            await invoke("create_policy", {
+                machineId: policyData.machineId === "all" ? null : policyData.machineId,
+                name: policyData.name || "Nova Política",
+                description: policyData.description || "",
+                policyType: policyData.policyType || "app",
+                priority: parseInt(policyData.priority) || 1,
+                target: policyData.target || "*",
+                action: policyData.action || "block",
+                configJson: policyData.configJson || "{}",
+                reason: policyData.reason || "Criado via Dashboard Enterprise"
             });
             await loadPolicies();
-        } catch (err) {
-            console.error('Error creating policy:', err);
-            throw err;
+        } catch (error) {
+            console.error("Failed to create policy", error);
+            throw error;
         }
     };
 
-    const deletePolicy = async (policyId: string) => {
+    const deletePolicy = async (id: string) => {
         try {
-            await invoke('delete_policy', { policyId });
+            await invoke("delete_policy", { id });
             await loadPolicies();
-        } catch (err) {
-            console.error('Error deleting policy:', err);
-            throw err;
+        } catch (error) {
+            console.error("Failed to delete policy", error);
         }
     };
 
-    useEffect(() => {
-        loadPolicies();
-    }, [machineId]);
-
-    return { policies, loading, createPolicy, deletePolicy, reload: loadPolicies };
+    return { policies, loading, createPolicy, deletePolicy };
 }
