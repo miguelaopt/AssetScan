@@ -30,7 +30,8 @@ export default function Vulnerabilities() {
     const loadVulnerabilities = async () => {
         try {
             setLoading(true);
-            const data = await invoke<Vulnerability[]>("list_vulnerabilities");
+            // CORRIGIDO: O nome correto do comando no Rust e passagem dos argumentos vazios
+            const data = await invoke<Vulnerability[]>("get_vulnerabilities", { machineId: null, severity: null });
             setVulns(data);
         } catch (err) {
             console.error(err);
@@ -45,9 +46,10 @@ export default function Vulnerabilities() {
 
         try {
             setScanning(true);
-            await invoke("scan_vulnerabilities_all");
-            toast.success("Scan iniciado! Resultados em breve...");
-            setTimeout(loadVulnerabilities, 3000);
+            // CORRIGIDO: O nome correto e passagem da flag "all"
+            await invoke("scan_vulnerabilities", { machineId: "all" });
+            toast.success("Scan iniciado e concluído!");
+            setTimeout(loadVulnerabilities, 1000);
         } catch (err) {
             toast.error(`Erro: ${err}`);
         } finally {

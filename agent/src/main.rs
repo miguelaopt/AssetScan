@@ -15,6 +15,12 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use std::time::Duration;
 use tokio::time;
+use std::sync::{Arc, Mutex};
+
+lazy_static::lazy_static! {
+    // Guarda a última versão das políticas em memória
+    static ref ACTIVE_POLICIES: Arc<Mutex<Vec<enforcer::Policy>>> = Arc::new(Mutex::new(Vec::new()));
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -34,6 +40,19 @@ async fn main() -> Result<()> {
     // ✅ FIX: Interval máximo 5 minutos (antes era 30)
     let interval_minutes = config.interval_minutes.min(5);
     let mut interval = time::interval(Duration::from_secs(interval_minutes * 60));
+
+    if config.enforcement_enabled {
+        tokio::spawn(async move {
+            let mut ticker = time::interval(Duration::from_secs(5));
+            loop {
+                ticker.tick().await;
+                let policies = ACTIVE_POLICIES.lock().unwrap().clone();
+                if !policies.is_empty() {
+                    enforcer::enforce_active_policies(&policies);
+                }
+            }
+        });
+    }
 
     loop {
         interval.tick().await;
@@ -63,12 +82,9 @@ async fn run_cycle(config: &config::Config) -> Result<()> {
     let policies = send_report_and_get_policies(&report, config).await?;
     println!("[Server] ✓ {} políticas recebidas", policies.len());
 
-    // 4. Aplica enforcement (com retry e fallback)
+    // Atualiza a memória partilhada para o Enforcer rápido ler
     if config.enforcement_enabled {
-        let blocked = enforcer::enforce_policies(&policies, &report.processes)?;
-        if blocked > 0 {
-            println!("[Enforcement] ⚠ {} bloqueado(s)", blocked);
-        }
+        *ACTIVE_POLICIES.lock().unwrap() = policies;
     }
 
     println!("[Completo] Ciclo OK\n");

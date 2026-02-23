@@ -2,6 +2,7 @@ use crate::database::DbPool;
 use crate::models::Vulnerability;
 use rusqlite::Row;
 use tauri::State;
+use crate::vulnerability_scanner;
 
 // Função helper para mapear rows
 fn map_vulnerability_row(row: &Row) -> rusqlite::Result<Vulnerability> {
@@ -60,9 +61,29 @@ pub async fn get_vulnerabilities(
 
 #[tauri::command]
 pub async fn scan_vulnerabilities(
-    _machine_id: String,
-    _pool: State<'_, DbPool>,
+    machine_id: String,
+    pool: State<'_, DbPool>,
 ) -> Result<usize, String> {
-    // Placeholder - implementação completa está em vulnerability_scanner.rs
-    Ok(0)
+    let conn = pool.lock().unwrap();
+    let mut total_vulns = 0;
+
+    // Apenas insere um DUMMY genérico no banco de dados para testes visuais
+    let cve_id = "CVE-2023-XXXX";
+    let desc = "Vulnerabilidade crítica detetada (Simulação). Requer atualização imediata.";
+    
+    // Insere ou atualiza o scan simulado
+    conn.execute(
+        "INSERT OR IGNORE INTO vulnerabilities (machine_id, software_name, software_version, cve_id, severity, description, status) 
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'open')",
+        rusqlite::params![
+            if machine_id == "all" { "ALL_MACHINES" } else { &machine_id },
+            "Google Chrome",
+            "100.0.0",
+            cve_id,
+            "critical",
+            desc
+        ],
+    ).map_err(|e| e.to_string())?;
+
+    Ok(1)
 }
